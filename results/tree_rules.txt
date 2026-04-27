@@ -1,0 +1,52 @@
+Decision Tree Rules
+===================
+
+|--- pressure_hpa <= 980.74
+|   |--- class: critical
+|--- pressure_hpa >  980.74
+|   |--- light_lux <= 110.41
+|   |   |--- temperature_c <= 30.71
+|   |   |   |--- class: critical
+|   |   |--- temperature_c >  30.71
+|   |   |   |--- class: warning
+|   |--- light_lux >  110.41
+|   |   |--- distance_cm <= 30.19
+|   |   |   |--- class: critical
+|   |   |--- distance_cm >  30.19
+|   |   |   |--- humidity_percent <= 80.11
+|   |   |   |   |--- temperature_c <= 38.66
+|   |   |   |   |   |--- pressure_hpa <= 1000.77
+|   |   |   |   |   |   |--- humidity_percent <= 54.10
+|   |   |   |   |   |   |   |--- class: warning
+|   |   |   |   |   |   |--- humidity_percent >  54.10
+|   |   |   |   |   |   |   |--- temperature_c <= 26.44
+|   |   |   |   |   |   |   |   |--- class: warning
+|   |   |   |   |   |   |   |--- temperature_c >  26.44
+|   |   |   |   |   |   |   |   |--- class: normal
+|   |   |   |   |   |--- pressure_hpa >  1000.77
+|   |   |   |   |   |   |--- distance_cm <= 74.96
+|   |   |   |   |   |   |   |--- class: warning
+|   |   |   |   |   |   |--- distance_cm >  74.96
+|   |   |   |   |   |   |   |--- humidity_percent <= 65.87
+|   |   |   |   |   |   |   |   |--- temperature_c <= 30.76
+|   |   |   |   |   |   |   |   |   |--- light_lux <= 238.62
+|   |   |   |   |   |   |   |   |   |   |--- class: warning
+|   |   |   |   |   |   |   |   |   |--- light_lux >  238.62
+|   |   |   |   |   |   |   |   |   |   |--- humidity_percent <= 64.29
+|   |   |   |   |   |   |   |   |   |   |   |--- class: normal
+|   |   |   |   |   |   |   |   |   |   |--- humidity_percent >  64.29
+|   |   |   |   |   |   |   |   |   |   |   |--- truncated branch of depth 2
+|   |   |   |   |   |   |   |   |--- temperature_c >  30.76
+|   |   |   |   |   |   |   |   |   |--- class: warning
+|   |   |   |   |   |   |   |--- humidity_percent >  65.87
+|   |   |   |   |   |   |   |   |--- light_lux <= 633.94
+|   |   |   |   |   |   |   |   |   |--- class: warning
+|   |   |   |   |   |   |   |   |--- light_lux >  633.94
+|   |   |   |   |   |   |   |   |   |--- light_lux <= 646.76
+|   |   |   |   |   |   |   |   |   |   |--- class: normal
+|   |   |   |   |   |   |   |   |   |--- light_lux >  646.76
+|   |   |   |   |   |   |   |   |   |   |--- class: warning
+|   |   |   |   |--- temperature_c >  38.66
+|   |   |   |   |   |--- class: critical
+|   |   |   |--- humidity_percent >  80.11
+|   |   |   |   |--- class: critical
