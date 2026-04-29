@@ -1,272 +1,107 @@
-# TinyML Flight Condition Monitor
+## Real Sensor Data Collection
 
-Aerospace-inspired embedded machine learning system for monitoring environmental and proximity conditions using ESP32 sensors and lightweight classification.
+In addition to the synthetic dataset, this project now includes real sensor data collected from the ESP32-based hardware prototype.
 
-This project demonstrates a complete TinyML-style pipeline:
+The ESP32 reads data from the connected sensors and sends CSV-formatted readings over Serial. A Python logging script stores these readings as CSV files for later analysis and model development.
 
-`synthetic sensor data generation → model training → evaluation → decision rule export → future ESP32 deployment`
+Serial data logging script:
 
-The goal is not to build a real aircraft system, but to prototype an embedded condition monitoring workflow inspired by aerospace and onboard environmental monitoring systems.
+`ml/log_serial_data.py`
 
----
+Example command:
 
-## Project Overview
-
-This project uses simulated sensor readings to classify system conditions into three states:
-
-- `normal`
-- `warning`
-- `critical`
-
-The input features are inspired by sensors that can be connected to an ESP32-based embedded monitoring system:
-
-- temperature
-- pressure
-- humidity
-- ambient light
-- short-range proximity distance
-- object detection flag
-
-A lightweight `DecisionTreeClassifier` is trained on the generated dataset. The trained model is then evaluated and exported as readable decision rules, which can later be translated into embedded logic for ESP32 deployment.
+`python ml/log_serial_data.py --port /dev/ttyUSB0 --samples 30 --output data/real_normal_baseline_log.csv`
 
 ---
 
-## Motivation
+## Real Dataset Scenarios
 
-Embedded monitoring systems often need to make decisions directly on low-power hardware. Instead of relying on a large cloud-based model, this project focuses on a small and interpretable machine learning model that can eventually run on a microcontroller.
+Real sensor logs were collected under separate controlled scenarios. Each scenario was saved as an individual CSV file before being combined into a labeled dataset.
 
-The project is designed around the following themes:
+Collected real scenarios:
 
-- TinyML
-- embedded AI
-- sensor-based condition monitoring
-- cyber-physical systems
-- aerospace-inspired environmental monitoring
-- interpretable machine learning for edge devices
+- `real_normal_baseline_log.csv`
+- `real_warning_distance_log.csv`
+- `real_critical_close_distance_log.csv`
+- `real_warning_low_light_log.csv`
+- `real_critical_dark_log.csv`
+- `real_bright_light_log.csv`
+- `real_warm_humid_log.csv`
 
----
+The scenario files are combined using:
 
-## Hardware Target
+`ml/build_real_dataset.py`
 
-The planned embedded target is an ESP32-based sensor node.
+Output labeled dataset:
 
-Planned hardware components:
+`data/real_labeled_sensor_data.csv`
 
-- ESP32
-- BME280 temperature, pressure, and humidity sensor
-- BH1750 light sensor
-- short-range distance or proximity sensor
-- OLED display
-- buzzer
-- NeoPixel LEDs
+The final real dataset includes the following columns:
 
-The current stage focuses on the machine learning pipeline using synthetic data. Real sensor logging and embedded inference will be added in later stages.
-
----
-
-## Classes
-
-The model predicts one of three condition classes.
-
-### Normal
-
-Stable environmental conditions and no nearby object detected.
-
-Example interpretation:
-
-- normal temperature
-- standard atmospheric pressure
-- moderate humidity
-- normal ambient light
-- no object detected in short range
-
-### Warning
-
-Moderately abnormal condition or nearby object detected.
-
-Example interpretation:
-
-- moderately high temperature
-- moderately low pressure
-- high humidity
-- low light
-- object detected at medium short range
-
-### Critical
-
-Severely abnormal condition or very close object detected.
-
-Example interpretation:
-
-- very high temperature
-- very low pressure
-- very high humidity
-- very low light
-- object detected very close to the sensor
-
----
-
-## Machine Learning Pipeline
-
-The current ML pipeline includes:
-
-1. Synthetic sensor dataset generation
-2. Decision tree training
-3. Model evaluation
-4. Confusion matrix generation
-5. Feature importance visualization
-6. Decision rule export
-
-The full pipeline can be executed with:
-
-`python ml/main.py`
-
-Individual scripts can also be run separately:
-
-`python ml/generate_synthetic_data.py`
-
-`python ml/train_model.py`
-
-`python ml/evaluate_model.py`
-
-`python ml/export_rules.py`
-
----
-
-## Dataset
-
-The initial dataset is synthetically generated using rule-based thresholds.
-
-Output file:
-
-`data/synthetic_sensor_data.csv`
-
-Features:
-
+- `timestamp`
 - `temperature_c`
 - `pressure_hpa`
 - `humidity_percent`
 - `light_lux`
 - `distance_cm`
 - `object_detected`
-
-Target label:
-
 - `label`
+- `scenario`
 
-This synthetic dataset is used only to prototype the full embedded ML workflow before collecting real sensor data from the ESP32 hardware.
+The `label` column represents the condition class:
 
----
+- `normal`
+- `warning`
+- `critical`
 
-## Model
-
-The current model is a decision tree classifier.
-
-Model file:
-
-`models/decision_tree_model.joblib`
-
-A decision tree was selected because it is:
-
-- lightweight
-- interpretable
-- suitable for embedded deployment
-- easy to convert into rule-based logic
-- appropriate for early TinyML prototyping
+The `scenario` column describes how the data was collected, such as `warning_distance`, `critical_dark`, or `warm_humid`.
 
 ---
 
-## Results
+## Real Dataset Analysis
 
-The current trained model achieves high classification performance on the synthetic test set.
+The real dataset is analyzed using:
 
-Generated result files:
+`ml/analyze_real_dataset.py`
 
-- `results/confusion_matrix.png`
-- `results/feature_importance.png`
-- `results/tree_rules.txt`
+This script generates plots for label distribution, scenario distribution, and mean feature values by label.
 
-### Confusion Matrix
+Generated real-data result files:
 
-![Confusion Matrix](results/confusion_matrix.png)
+- `results/real_label_distribution.png`
+- `results/real_scenario_distribution.png`
+- `results/real_feature_ranges.png`
 
-### Feature Importance
+### Real Label Distribution
 
-![Feature Importance](results/feature_importance.png)
+![Real Label Distribution](results/real_label_distribution.png)
 
----
+### Real Scenario Distribution
 
-## Decision Rule Export
+![Real Scenario Distribution](results/real_scenario_distribution.png)
 
-The trained decision tree is exported as readable rules:
+### Real Feature Ranges
 
-`results/tree_rules.txt`
-
-This step is important because the model can later be converted into embedded `if-else` logic for ESP32 inference.
+![Real Feature Ranges](results/real_feature_ranges.png)
 
 ---
 
-## Repository Structure
+## Current Real Data Status
 
-- `data/` synthetic dataset
-- `docs/` project documentation
-- `firmware/` future ESP32 firmware
-- `ml/` machine learning pipeline scripts
-- `models/` trained model files
-- `results/` evaluation plots and exported rules
-- `assets/` additional project assets
+The current real dataset contains sensor readings collected from the ESP32 prototype using:
 
----
+- BME280 for temperature, pressure, and humidity
+- BH1750 for light intensity
+- VL53LDK / VL53L0X-compatible Time-of-Flight distance sensor
 
-## Setup
+The real data currently covers:
 
-Create and activate a virtual environment:
+- normal baseline condition
+- medium-distance proximity warning
+- close-distance critical condition
+- low-light warning condition
+- dark critical condition
+- bright light observation
+- warm and humid condition
 
-`python3 -m venv venv`
-
-`source venv/bin/activate`
-
-Install dependencies:
-
-`pip install -r requirements.txt`
-
-Run the full ML pipeline:
-
-`python ml/main.py`
-
----
-
-## Current Status
-
-Completed:
-
-- project structure
-- synthetic data generator
-- decision tree training pipeline
-- model saving
-- evaluation plots
-- feature importance analysis
-- decision rule export
-- end-to-end ML pipeline runner
-
-Next steps:
-
-- add ESP32 sensor logger firmware
-- collect real sensor data
-- train model on real or hybrid data
-- implement embedded inference
-- show classification output on OLED, NeoPixels, and buzzer
-
----
-
-## Limitations
-
-This project currently uses synthetic data. The generated labels are based on manually defined threshold rules and are intended for pipeline prototyping.
-
-The current model should not be interpreted as a real aerospace safety system. It is an educational and portfolio-oriented embedded AI prototype inspired by aerospace condition monitoring concepts.
-
----
-
-## License
-
-This project is released under the MIT License.
+This real dataset is still small and intended for prototype validation. Larger real datasets can be collected later for more reliable model training.
