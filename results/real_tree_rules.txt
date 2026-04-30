@@ -1,0 +1,13 @@
+Real Decision Tree Rules
+========================
+
+|--- temperature_c <= 26.34
+|   |--- light_lux <= 70.42
+|   |   |--- class: critical
+|   |--- light_lux >  70.42
+|   |   |--- object_detected <= 0.50
+|   |   |   |--- class: normal
+|   |   |--- object_detected >  0.50
+|   |   |   |--- class: critical
+|--- temperature_c >  26.34
+|   |--- class: warning
