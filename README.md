@@ -4,7 +4,7 @@ Aerospace-inspired embedded machine learning system for monitoring environmental
 
 This project demonstrates a complete TinyML-style workflow:
 
-`synthetic sensor data generation → model training → evaluation → decision rule export → ESP32 sensor logging → real sensor dataset collection`
+`synthetic sensor data generation → model training → evaluation → decision rule export → ESP32 sensor logging → real sensor dataset collection → real model training`
 
 The goal is not to build a real aircraft safety system. Instead, this project is an educational embedded AI prototype inspired by aerospace-style condition monitoring and onboard environmental sensing.
 
@@ -18,7 +18,7 @@ This project classifies sensor-based conditions into three states:
 - `warning`
 - `critical`
 
-The system is designed around an ESP32-based embedded sensor node. The current implementation includes both a synthetic ML pipeline and real sensor data collection from hardware.
+The system is designed around an ESP32-based embedded sensor node. The current implementation includes both a synthetic machine learning pipeline and real sensor data collection from hardware.
 
 Input features:
 
@@ -29,7 +29,7 @@ Input features:
 - `distance_cm`
 - `object_detected`
 
-The current machine learning model is a lightweight `DecisionTreeClassifier`, selected because it is interpretable and suitable for later embedded deployment as rule-based logic.
+The main machine learning model is a lightweight `DecisionTreeClassifier`, selected because it is interpretable, suitable for small datasets, and easier to convert into embedded rule-based logic for ESP32 deployment.
 
 ---
 
@@ -51,7 +51,7 @@ The project focuses on:
 
 ## Hardware Target
 
-The planned embedded target is an ESP32-based sensor node.
+The embedded target is an ESP32-based sensor node.
 
 Hardware components used or planned:
 
@@ -98,7 +98,7 @@ Severe abnormal condition or close proximity event.
 Example patterns:
 
 - object detected very close to the sensor
-- very low light / dark condition
+- very low light or dark condition
 
 ---
 
@@ -292,6 +292,39 @@ Generated real-data result files:
 
 ---
 
+## Real Model Results
+
+A separate decision tree model was trained on the labeled real sensor dataset.
+
+Training script:
+
+`ml/train_real_model.py`
+
+Trained model file:
+
+`models/real_decision_tree_model.joblib`
+
+Evaluation script:
+
+`ml/evaluate_real_model.py`
+
+Generated real-model result files:
+
+- `results/real_confusion_matrix_model.png`
+- `results/real_model_feature_importance.png`
+
+### Real Model Confusion Matrix
+
+![Real Model Confusion Matrix](results/real_confusion_matrix_model.png)
+
+### Real Model Feature Importance
+
+![Real Model Feature Importance](results/real_model_feature_importance.png)
+
+The current real-data model achieves perfect classification on the collected controlled scenario dataset. This result should be interpreted carefully because the dataset is still small and scenario-based. It shows that the decision tree can separate the collected prototype conditions, but larger and more diverse real datasets would be needed for robust real-world deployment.
+
+---
+
 ## Current Real Data Status
 
 The current real dataset contains sensor readings collected from the ESP32 prototype using:
@@ -310,7 +343,7 @@ The real data currently covers:
 - bright light observation
 - warm and humid condition
 
-This real dataset is still small and intended for prototype validation. Larger real datasets can be collected later for more reliable model training.
+This real dataset is still small and intended for prototype validation. Larger real datasets can be collected later for more reliable model training and model comparison.
 
 ---
 
@@ -350,6 +383,14 @@ Analyze the real dataset:
 
 `python ml/analyze_real_dataset.py`
 
+Train the real-data decision tree model:
+
+`python ml/train_real_model.py`
+
+Evaluate the real-data decision tree model:
+
+`python ml/evaluate_real_model.py`
+
 ---
 
 ## Current Status
@@ -358,8 +399,8 @@ Completed:
 
 - project structure
 - synthetic data generator
-- decision tree training pipeline
-- model saving
+- synthetic decision tree training pipeline
+- synthetic model saving
 - synthetic evaluation plots
 - feature importance analysis
 - decision rule export
@@ -368,13 +409,24 @@ Completed:
 - scenario-based real sensor logs
 - labeled real sensor dataset
 - real dataset analysis plots
+- real decision tree model training
+- real model evaluation plots
 
 Next steps:
 
-- train and evaluate a model on the real labeled dataset
 - compare synthetic-trained and real-trained model behavior
+- optionally collect a larger real dataset for model comparison
+- optionally compare Decision Tree with a small MLP baseline
 - convert decision rules into embedded inference logic
 - show predicted condition on OLED, NeoPixels, and buzzer
+
+---
+
+## Notes on Neural Networks
+
+A neural network is not used as the main model in the current version because the real dataset is still small and scenario-based.
+
+A small `MLPClassifier` may be added later as an experimental baseline for comparison. However, the decision tree remains the preferred embedded model because it is interpretable, lightweight, and easier to deploy on ESP32 as rule-based logic.
 
 ---
 
@@ -383,6 +435,8 @@ Next steps:
 The synthetic dataset is generated using manually designed threshold rules.
 
 The real dataset is currently small and collected under manually controlled scenarios. It is useful for prototype validation, but larger and more diverse real datasets would be needed for robust model training.
+
+The real-data model performs perfectly on the current controlled scenario dataset, but this should not be interpreted as proof of general real-world reliability.
 
 This project should not be interpreted as a real aircraft monitoring, navigation, or safety system. It is an educational embedded AI prototype inspired by aerospace condition monitoring concepts.
 
