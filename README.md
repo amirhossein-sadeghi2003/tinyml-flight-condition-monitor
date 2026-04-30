@@ -4,7 +4,7 @@ Aerospace-inspired embedded machine learning system for monitoring environmental
 
 This project demonstrates a complete TinyML-style workflow:
 
-`synthetic sensor data generation → model training → evaluation → decision rule export → ESP32 sensor logging → real sensor dataset collection → real model training`
+`synthetic sensor data generation → model training → evaluation → decision rule export → ESP32 sensor logging → real sensor dataset collection → real model training → synthetic-vs-real model comparison`
 
 The goal is not to build a real aircraft safety system. Instead, this project is an educational embedded AI prototype inspired by aerospace-style condition monitoring and onboard environmental sensing.
 
@@ -18,7 +18,13 @@ This project classifies sensor-based conditions into three states:
 - `warning`
 - `critical`
 
-The system is designed around an ESP32-based embedded sensor node. The current implementation includes both a synthetic machine learning pipeline and real sensor data collection from hardware.
+The system is designed around an ESP32-based embedded sensor node. The current implementation includes:
+
+- a synthetic machine learning pipeline
+- real sensor data logging from ESP32 hardware
+- scenario-based real dataset collection
+- real-data model training
+- comparison between synthetic-trained and real-trained models
 
 Input features:
 
@@ -46,6 +52,7 @@ The project focuses on:
 - interpretable machine learning
 - aerospace-inspired environmental monitoring
 - edge intelligence on microcontrollers
+- real-world validation of sensor-based ML models
 
 ---
 
@@ -325,6 +332,40 @@ The current real-data model achieves perfect classification on the collected con
 
 ---
 
+## Synthetic vs Real Model Comparison
+
+To understand how well the synthetic pipeline transfers to real hardware data, both trained models were evaluated on the labeled real sensor dataset.
+
+Comparison script:
+
+`ml/compare_synthetic_real_models.py`
+
+Generated comparison result files:
+
+- `results/synthetic_model_on_real_confusion_matrix.png`
+- `results/real_model_on_real_confusion_matrix.png`
+
+### Synthetic-Trained Model on Real Data
+
+![Synthetic-Trained Model on Real Data](results/synthetic_model_on_real_confusion_matrix.png)
+
+### Real-Trained Model on Real Data
+
+![Real-Trained Model on Real Data](results/real_model_on_real_confusion_matrix.png)
+
+### Comparison Summary
+
+- Synthetic-trained model accuracy on real data: `0.2871`
+- Real-trained model accuracy on real data: `1.0000`
+
+This comparison shows that the synthetic dataset was useful for building and testing the initial ML pipeline, but it does not fully match the distribution of the real sensor data collected from the ESP32 hardware prototype.
+
+The real-trained model performs much better on the collected real dataset, which highlights the importance of real-world data collection for embedded ML validation and deployment.
+
+This is an important result for the project: the synthetic data helped build the pipeline, but the real hardware data was necessary for realistic model behavior.
+
+---
+
 ## Current Real Data Status
 
 The current real dataset contains sensor readings collected from the ESP32 prototype using:
@@ -343,7 +384,7 @@ The real data currently covers:
 - bright light observation
 - warm and humid condition
 
-This real dataset is still small and intended for prototype validation. Larger real datasets can be collected later for more reliable model training and model comparison.
+This real dataset is still small and intended for prototype validation. Larger and more diverse real datasets can be collected later for more reliable model training and model comparison.
 
 ---
 
@@ -391,6 +432,10 @@ Evaluate the real-data decision tree model:
 
 `python ml/evaluate_real_model.py`
 
+Compare synthetic-trained and real-trained models on real data:
+
+`python ml/compare_synthetic_real_models.py`
+
 ---
 
 ## Current Status
@@ -411,10 +456,10 @@ Completed:
 - real dataset analysis plots
 - real decision tree model training
 - real model evaluation plots
+- synthetic-trained vs real-trained model comparison
 
 Next steps:
 
-- compare synthetic-trained and real-trained model behavior
 - optionally collect a larger real dataset for model comparison
 - optionally compare Decision Tree with a small MLP baseline
 - convert decision rules into embedded inference logic
@@ -437,6 +482,8 @@ The synthetic dataset is generated using manually designed threshold rules.
 The real dataset is currently small and collected under manually controlled scenarios. It is useful for prototype validation, but larger and more diverse real datasets would be needed for robust model training.
 
 The real-data model performs perfectly on the current controlled scenario dataset, but this should not be interpreted as proof of general real-world reliability.
+
+The synthetic-trained model performs poorly on the collected real dataset, showing that the synthetic distribution does not fully match real sensor behavior. This is a useful validation result and motivates real-world data collection.
 
 This project should not be interpreted as a real aircraft monitoring, navigation, or safety system. It is an educational embedded AI prototype inspired by aerospace condition monitoring concepts.
 
