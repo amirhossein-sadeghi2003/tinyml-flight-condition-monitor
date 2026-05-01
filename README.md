@@ -4,7 +4,7 @@ Aerospace-inspired embedded machine learning system for monitoring environmental
 
 This project demonstrates a complete TinyML-style workflow:
 
-`synthetic sensor data generation → model training → evaluation → decision rule export → ESP32 sensor logging → real sensor dataset collection → real model training → synthetic-vs-real model comparison`
+`synthetic sensor data generation → model training → evaluation → decision rule export → ESP32 sensor logging → real sensor dataset collection → real model training → synthetic-vs-real model comparison → filtered Round2 real dataset → embedded-friendly decision rules`
 
 The goal is not to build a real aircraft safety system. Instead, this project is an educational embedded AI prototype inspired by aerospace-style condition monitoring and onboard environmental sensing.
 
@@ -25,6 +25,9 @@ The system is designed around an ESP32-based embedded sensor node. The current i
 - scenario-based real dataset collection
 - real-data model training
 - comparison between synthetic-trained and real-trained models
+- a larger filtered Round2 real dataset
+- an embedded-friendly decision tree model trained on real sensor data
+- exported decision rules for later ESP32 deployment
 
 Input features:
 
@@ -35,7 +38,7 @@ Input features:
 - `distance_cm`
 - `object_detected`
 
-The main machine learning model is a lightweight `DecisionTreeClassifier`, selected because it is interpretable, suitable for small datasets, and easier to convert into embedded rule-based logic for ESP32 deployment.
+The main machine learning model is a lightweight `DecisionTreeClassifier`, selected because it is interpretable, suitable for small embedded datasets, and easier to convert into embedded rule-based logic for ESP32 deployment.
 
 ---
 
@@ -53,6 +56,7 @@ The project focuses on:
 - aerospace-inspired environmental monitoring
 - edge intelligence on microcontrollers
 - real-world validation of sensor-based ML models
+- converting trained decision rules into embedded firmware logic
 
 ---
 
@@ -71,6 +75,8 @@ Hardware components used or planned:
 - buzzer
 
 The current hardware stage includes real sensor logging over Serial using BME280, BH1750, and the VL53LDK / VL53L0X-compatible distance sensor.
+
+OLED, NeoPixel LEDs, and buzzer are planned for the next embedded inference stage.
 
 ---
 
@@ -181,7 +187,7 @@ Generated synthetic result files:
 
 ## Decision Rule Export
 
-The trained decision tree is exported as readable rules:
+The trained synthetic decision tree is exported as readable rules:
 
 `results/tree_rules.txt`
 
@@ -227,11 +233,11 @@ Example command:
 
 ---
 
-## Real Dataset Scenarios
+## Initial Real Dataset Scenarios
 
-Real sensor logs were collected under separate controlled scenarios. Each scenario was saved as an individual CSV file before being combined into a labeled dataset.
+The first real sensor logs were collected under separate controlled scenarios. Each scenario was saved as an individual CSV file before being combined into a labeled dataset.
 
-Collected real scenarios:
+Initial collected real scenarios:
 
 - `real_normal_baseline_log.csv`
 - `real_warning_distance_log.csv`
@@ -273,7 +279,7 @@ The `scenario` column describes how the data was collected, such as `warning_dis
 
 ## Real Dataset Analysis
 
-The real dataset is analyzed using:
+The initial real dataset is analyzed using:
 
 `ml/analyze_real_dataset.py`
 
@@ -301,7 +307,7 @@ Generated real-data result files:
 
 ## Real Model Results
 
-A separate decision tree model was trained on the labeled real sensor dataset.
+A separate decision tree model was trained on the initial labeled real sensor dataset.
 
 Training script:
 
@@ -328,7 +334,7 @@ Generated real-model result files:
 
 ![Real Model Feature Importance](results/real_model_feature_importance.png)
 
-The current real-data model achieves perfect classification on the collected controlled scenario dataset. This result should be interpreted carefully because the dataset is still small and scenario-based. It shows that the decision tree can separate the collected prototype conditions, but larger and more diverse real datasets would be needed for robust real-world deployment.
+The initial real-data model achieves perfect classification on the collected controlled scenario dataset. This result should be interpreted carefully because the dataset is small and scenario-based. It shows that the decision tree can separate the collected prototype conditions, but larger and more diverse real datasets are needed for more reliable model behavior.
 
 ---
 
@@ -366,15 +372,148 @@ This is an important result for the project: the synthetic data helped build the
 
 ---
 
+## Round2 Real Dataset
+
+To improve the reliability of the real-data workflow, a second round of real sensor data was collected under more controlled and diverse conditions.
+
+The Round2 dataset was collected in the same room and within a short time window to reduce environmental drift between scenarios. Each scenario was saved as a separate CSV file and then filtered before being merged into a labeled dataset.
+
+Round2 scenario files:
+
+- `data/real_normal_baseline_round2_log.csv`
+- `data/real_normal_bright_light_round2_log.csv`
+- `data/real_normal_medium_light_round2_log.csv`
+- `data/real_warning_low_light_round2_log.csv`
+- `data/real_critical_dark_round2_log.csv`
+- `data/real_warning_distance_round2_log.csv`
+- `data/real_critical_close_distance_round2_log.csv`
+- `data/real_warning_warm_humid_round2_log.csv`
+- `data/real_warning_warm_humid_high_light_round2_log.csv`
+
+The Round2 dataset is built using:
+
+`ml/build_real_dataset_round2.py`
+
+Output dataset:
+
+`data/real_labeled_sensor_data_round2.csv`
+
+The Round2 build script applies scenario-specific filters before merging the files. For example:
+
+- warning-distance samples keep rows with detected objects in the 30–50 cm range
+- critical close-distance samples keep rows with detected objects below 30 cm
+- dark critical samples keep rows with very low light values
+- warm/humid warning samples keep rows with high humidity and no nearby object
+- normal medium-light samples help distinguish normal lighting from warm/humid warning conditions
+
+Round2 final label distribution:
+
+- `normal`: 607 samples
+- `warning`: 798 samples
+- `critical`: 406 samples
+
+Total Round2 samples:
+
+`1811`
+
+This dataset is more suitable for embedded model development than the initial small real dataset because it contains more samples, cleaner scenario separation, and additional corrective data for medium-light and high-humidity cases.
+
+---
+
+## Embedded-Friendly Round2 Model
+
+A second embedded-friendly decision tree model was trained on the filtered Round2 real dataset.
+
+Training script:
+
+`ml/train_real_embedded_model_round2.py`
+
+Model file:
+
+`models/real_embedded_decision_tree_model_round2.joblib`
+
+The embedded-friendly model uses only the following features:
+
+- `humidity_percent`
+- `light_lux`
+- `distance_cm`
+- `object_detected`
+
+These features were selected because they map directly to simple embedded inference logic and avoid relying too heavily on temperature or pressure drift.
+
+Round2 embedded model performance:
+
+- Accuracy: `0.9934`
+- Critical recall: `1.00`
+- Normal recall: `0.98`
+- Warning recall: `1.00`
+
+This result is more realistic than the earlier perfect-score models because the Round2 dataset includes more overlapping conditions, especially medium-light normal data and high-humidity warning data.
+
+---
+
+## Round2 Embedded Decision Rules
+
+The Round2 embedded-friendly decision tree was exported as readable rules using:
+
+`ml/export_real_embedded_rules_round2.py`
+
+Generated rule file:
+
+`results/real_embedded_tree_rules_round2.txt`
+
+Exported rules:
+
+```text
+|--- light_lux <= 76.25
+|   |--- light_lux <= 10.00
+|   |   |--- class: critical
+|   |--- light_lux >  10.00
+|   |   |--- distance_cm <= 28.75
+|   |   |   |--- class: critical
+|   |   |--- distance_cm >  28.75
+|   |   |   |--- light_lux <= 73.75
+|   |   |   |   |--- humidity_percent <= 20.01
+|   |   |   |   |   |--- class: normal
+|   |   |   |   |--- humidity_percent >  20.01
+|   |   |   |   |   |--- class: warning
+|   |   |   |--- light_lux >  73.75
+|   |   |   |   |--- humidity_percent <= 28.95
+|   |   |   |   |   |--- class: normal
+|   |   |   |   |--- humidity_percent >  28.95
+|   |   |   |   |   |--- class: warning
+|--- light_lux >  76.25
+|   |--- humidity_percent <= 29.51
+|   |   |--- class: normal
+|   |--- humidity_percent >  29.51
+|   |   |--- class: warning
+```
+
+The exported rules are suitable for conversion into ESP32 `if-else` logic. The model separates the three condition classes using light intensity, distance, object detection, and humidity.
+
+For firmware deployment, the decision logic may be simplified into more robust manually written thresholds based on these learned rules. For example:
+
+- very low light can trigger `critical`
+- very close distance can trigger `critical`
+- medium distance can trigger `warning`
+- high humidity can trigger `warning`
+- otherwise the condition can remain `normal`
+
+The next embedded step is to implement the decision logic directly in ESP32 firmware and connect the predicted condition to:
+
+- OLED display output
+- NeoPixel status colors
+- buzzer alerts
+
+---
+
 ## Current Real Data Status
 
-The current real dataset contains sensor readings collected from the ESP32 prototype using:
+The project now contains two real-data stages:
 
-- BME280 for temperature, pressure, and humidity
-- BH1750 for light intensity
-- VL53LDK / VL53L0X-compatible Time-of-Flight distance sensor
+### Initial Real Dataset
 
-The real data currently covers:
+The first real dataset was small and intended for early prototype validation. It covered:
 
 - normal baseline condition
 - medium-distance proximity warning
@@ -384,7 +523,21 @@ The real data currently covers:
 - bright light observation
 - warm and humid condition
 
-This real dataset is still small and intended for prototype validation. Larger and more diverse real datasets can be collected later for more reliable model training and model comparison.
+### Round2 Real Dataset
+
+The Round2 dataset is larger, filtered, and more suitable for embedded model development. It covers:
+
+- normal baseline condition
+- normal bright-light condition
+- normal medium-light condition
+- low-light warning condition
+- dark critical condition
+- medium-distance proximity warning
+- close-distance critical condition
+- warm and humid warning condition
+- warm and humid high-light warning condition
+
+The Round2 dataset is currently the preferred real dataset for embedded inference work.
 
 ---
 
@@ -416,25 +569,41 @@ Run the full synthetic ML pipeline:
 
 `python ml/main.py`
 
-Build the labeled real dataset:
+Build the initial labeled real dataset:
 
 `python ml/build_real_dataset.py`
 
-Analyze the real dataset:
+Analyze the initial real dataset:
 
 `python ml/analyze_real_dataset.py`
 
-Train the real-data decision tree model:
+Train the initial real-data decision tree model:
 
 `python ml/train_real_model.py`
 
-Evaluate the real-data decision tree model:
+Evaluate the initial real-data decision tree model:
 
 `python ml/evaluate_real_model.py`
 
 Compare synthetic-trained and real-trained models on real data:
 
 `python ml/compare_synthetic_real_models.py`
+
+Build the filtered Round2 real dataset:
+
+`python ml/build_real_dataset_round2.py`
+
+Train the embedded-friendly Round2 model:
+
+`python ml/train_real_embedded_model_round2.py`
+
+Export the Round2 embedded decision rules:
+
+`python ml/export_real_embedded_rules_round2.py`
+
+View the exported Round2 rules:
+
+`cat results/real_embedded_tree_rules_round2.txt`
 
 ---
 
@@ -452,26 +621,32 @@ Completed:
 - ESP32 I2C sensor logger firmware
 - real sensor serial logging script
 - scenario-based real sensor logs
-- labeled real sensor dataset
+- initial labeled real sensor dataset
 - real dataset analysis plots
 - real decision tree model training
 - real model evaluation plots
 - synthetic-trained vs real-trained model comparison
+- filtered Round2 real sensor dataset
+- embedded-friendly Round2 decision tree model
+- exported Round2 embedded decision rules
 
 Next steps:
 
-- optionally collect a larger real dataset for model comparison
-- optionally compare Decision Tree with a small MLP baseline
-- convert decision rules into embedded inference logic
-- show predicted condition on OLED, NeoPixels, and buzzer
+- convert Round2 embedded decision rules into ESP32 firmware logic
+- display predicted condition on OLED
+- show condition status using NeoPixel LEDs
+- trigger buzzer alerts for critical conditions
+- optionally compare with a small neural network baseline later
 
 ---
 
 ## Notes on Neural Networks
 
-A neural network is not used as the main model in the current version because the real dataset is still small and scenario-based.
+A neural network is not used as the main model in the current version because the project benefits more from an interpretable embedded model.
 
-A small `MLPClassifier` may be added later as an experimental baseline for comparison. However, the decision tree remains the preferred embedded model because it is interpretable, lightweight, and easier to deploy on ESP32 as rule-based logic.
+A small `MLPClassifier` may be added later as an experimental baseline for comparison after the real-data pipeline is stable. However, the decision tree remains the preferred embedded model because it is interpretable, lightweight, and easier to deploy on ESP32 as rule-based logic.
+
+For this stage, the priority is reliable embedded inference and hardware feedback using OLED, NeoPixel LEDs, and buzzer alerts.
 
 ---
 
@@ -479,9 +654,11 @@ A small `MLPClassifier` may be added later as an experimental baseline for compa
 
 The synthetic dataset is generated using manually designed threshold rules.
 
-The real dataset is currently small and collected under manually controlled scenarios. It is useful for prototype validation, but larger and more diverse real datasets would be needed for robust model training.
+The initial real dataset is small and collected under manually controlled scenarios. It is useful for prototype validation, but should not be treated as robust real-world coverage.
 
-The real-data model performs perfectly on the current controlled scenario dataset, but this should not be interpreted as proof of general real-world reliability.
+The Round2 real dataset is larger and cleaner, but it is still collected in one room under manually controlled conditions. More data from different environments would be needed for general real-world reliability.
+
+The real-data models perform very well on the collected controlled scenario datasets, but this should not be interpreted as proof of general real-world reliability.
 
 The synthetic-trained model performs poorly on the collected real dataset, showing that the synthetic distribution does not fully match real sensor behavior. This is a useful validation result and motivates real-world data collection.
 
