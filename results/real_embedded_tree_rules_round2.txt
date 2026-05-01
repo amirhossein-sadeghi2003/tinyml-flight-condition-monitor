@@ -1,0 +1,25 @@
+Round2 Embedded-Friendly Real Decision Tree Rules
+=================================================
+
+|--- light_lux <= 76.25
+|   |--- light_lux <= 10.00
+|   |   |--- class: critical
+|   |--- light_lux >  10.00
+|   |   |--- distance_cm <= 28.75
+|   |   |   |--- class: critical
+|   |   |--- distance_cm >  28.75
+|   |   |   |--- light_lux <= 73.75
+|   |   |   |   |--- humidity_percent <= 20.01
+|   |   |   |   |   |--- class: normal
+|   |   |   |   |--- humidity_percent >  20.01
+|   |   |   |   |   |--- class: warning
+|   |   |   |--- light_lux >  73.75
+|   |   |   |   |--- humidity_percent <= 28.95
+|   |   |   |   |   |--- class: normal
+|   |   |   |   |--- humidity_percent >  28.95
+|   |   |   |   |   |--- class: warning
+|--- light_lux >  76.25
+|   |--- humidity_percent <= 29.51
+|   |   |--- class: normal
+|   |--- humidity_percent >  29.51
+|   |   |--- class: warning
