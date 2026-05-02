@@ -4,6 +4,8 @@
 #include <BH1750.h>
 #include <Adafruit_VL53L0X.h>
 #include <Adafruit_NeoPixel.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 Adafruit_BME280 bme;
 BH1750 lightMeter;
@@ -15,10 +17,22 @@ const float OBJECT_DETECTION_THRESHOLD_CM = 50.0;
 #define NEOPIXEL_PIN 27
 #define NEOPIXEL_COUNT 3
 
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+#define OLED_ADDRESS 0x3C
+
 Adafruit_NeoPixel pixels(
   NEOPIXEL_COUNT,
   NEOPIXEL_PIN,
   NEO_GRB + NEO_KHZ800
+);
+
+Adafruit_SSD1306 display(
+  SCREEN_WIDTH,
+  SCREEN_HEIGHT,
+  &Wire,
+  OLED_RESET
 );
 
 String predictCondition(
@@ -73,6 +87,95 @@ void setNeoPixelStatus(String condition) {
   pixels.show();
 }
 
+void showStatusOnOLED(
+  String condition,
+  float temperature_c,
+  float humidity_percent,
+  float light_lux,
+  float distance_cm,
+  int object_detected
+) {
+  display.clearDisplay();
+
+  display.setTextColor(SSD1306_WHITE);
+
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Flight Cond Monitor");
+
+  display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
+
+  display.setTextSize(2);
+  display.setCursor(0, 16);
+
+  if (condition == "normal") {
+    display.print("NORMAL");
+  } else if (condition == "warning") {
+    display.print("WARNING");
+  } else if (condition == "critical") {
+    display.print("CRITICAL");
+  } else {
+    display.print("UNKNOWN");
+  }
+
+  display.setTextSize(1);
+
+  display.setCursor(0, 40);
+  display.print("L:");
+  display.print(light_lux, 0);
+  display.print("lx ");
+
+  display.print("D:");
+  display.print(distance_cm, 1);
+  display.print("cm");
+
+  display.setCursor(0, 52);
+  display.print("H:");
+  display.print(humidity_percent, 1);
+  display.print("% ");
+
+  display.print("Obj:");
+  display.print(object_detected);
+
+  display.display();
+}
+
+void showStartupOnOLED() {
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("TinyML Flight");
+
+  display.setCursor(0, 12);
+  display.print("Condition Monitor");
+
+  display.setCursor(0, 32);
+  display.print("Initializing...");
+
+  display.display();
+}
+
+void showErrorOnOLED(String errorMessage) {
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("SENSOR ERROR");
+
+  display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
+
+  display.setCursor(0, 20);
+  display.print(errorMessage);
+
+  display.setCursor(0, 44);
+  display.print("Check wiring/I2C");
+
+  display.display();
+}
+
 void setup() {
   Serial.begin(115200);
   delay(1000);
@@ -84,11 +187,22 @@ void setup() {
   pixels.clear();
   pixels.show();
 
+  if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS)) {
+    Serial.println("ERROR: SSD1306 OLED not found at 0x3C");
+    setNeoPixelStatus("critical");
+    while (1) {
+      delay(1000);
+    }
+  }
+
+  showStartupOnOLED();
+
   Serial.println("Initializing sensors...");
 
   if (!bme.begin(0x76)) {
     Serial.println("ERROR: BME280 not found at 0x76");
     setNeoPixelStatus("critical");
+    showErrorOnOLED("BME280 not found");
     while (1) {
       delay(1000);
     }
@@ -97,6 +211,7 @@ void setup() {
   if (!lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, 0x23, &Wire)) {
     Serial.println("ERROR: BH1750 not found at 0x23");
     setNeoPixelStatus("critical");
+    showErrorOnOLED("BH1750 not found");
     while (1) {
       delay(1000);
     }
@@ -105,6 +220,7 @@ void setup() {
   if (!lox.begin(0x29, false, &Wire)) {
     Serial.println("ERROR: VL53LDK/VL53L0X not found at 0x29");
     setNeoPixelStatus("critical");
+    showErrorOnOLED("VL53L0X not found");
     while (1) {
       delay(1000);
     }
@@ -112,6 +228,17 @@ void setup() {
 
   Serial.println("Sensors initialized successfully");
   Serial.println("temperature_c,pressure_hpa,humidity_percent,light_lux,distance_cm,object_detected,predicted_condition");
+
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Sensors OK");
+  display.setCursor(0, 16);
+  display.print("Starting inference...");
+  display.display();
+
+  delay(1000);
 }
 
 void loop() {
@@ -144,6 +271,15 @@ void loop() {
   );
 
   setNeoPixelStatus(predicted_condition);
+
+  showStatusOnOLED(
+    predicted_condition,
+    temperature_c,
+    humidity_percent,
+    light_lux,
+    distance_cm,
+    object_detected
+  );
 
   Serial.print(temperature_c, 2);
   Serial.print(",");
