@@ -1,4 +1,3 @@
-
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
@@ -11,6 +10,38 @@ Adafruit_VL53L0X lox = Adafruit_VL53L0X();
 
 const float NO_OBJECT_DISTANCE_CM = 100.0;
 const float OBJECT_DETECTION_THRESHOLD_CM = 50.0;
+
+String predictCondition(
+  float humidity_percent,
+  float light_lux,
+  float distance_cm,
+  int object_detected
+) {
+  // Embedded safety-prioritized inference logic
+  // Based on Round2 decision tree rules, with proximity prioritized for firmware use.
+
+  if (object_detected == 1) {
+    if (distance_cm <= 28.75) {
+      return "critical";
+    } else if (distance_cm <= 50.00) {
+      return "warning";
+    }
+  }
+
+  if (light_lux <= 10.00) {
+    return "critical";
+  }
+
+  if (light_lux <= 35.00) {
+    return "warning";
+  }
+
+  if (humidity_percent > 29.50) {
+    return "warning";
+  }
+
+  return "normal";
+}
 
 void setup() {
   Serial.begin(115200);
@@ -42,7 +73,7 @@ void setup() {
   }
 
   Serial.println("Sensors initialized successfully");
-  Serial.println("temperature_c,pressure_hpa,humidity_percent,light_lux,distance_cm,object_detected");
+  Serial.println("temperature_c,pressure_hpa,humidity_percent,light_lux,distance_cm,object_detected,predicted_condition");
 }
 
 void loop() {
@@ -67,6 +98,13 @@ void loop() {
     }
   }
 
+  String predicted_condition = predictCondition(
+    humidity_percent,
+    light_lux,
+    distance_cm,
+    object_detected
+  );
+
   Serial.print(temperature_c, 2);
   Serial.print(",");
   Serial.print(pressure_hpa, 2);
@@ -77,7 +115,9 @@ void loop() {
   Serial.print(",");
   Serial.print(distance_cm, 2);
   Serial.print(",");
-  Serial.println(object_detected);
+  Serial.print(object_detected);
+  Serial.print(",");
+  Serial.println(predicted_condition);
 
   delay(1000);
 }
