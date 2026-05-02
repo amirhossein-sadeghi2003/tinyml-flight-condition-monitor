@@ -17,6 +17,8 @@ const float OBJECT_DETECTION_THRESHOLD_CM = 50.0;
 #define NEOPIXEL_PIN 27
 #define NEOPIXEL_COUNT 3
 
+#define BUZZER_PIN 23
+
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
@@ -85,6 +87,20 @@ void setNeoPixelStatus(String condition) {
   }
 
   pixels.show();
+}
+
+void updateBuzzerStatus(String condition) {
+  if (condition == "critical") {
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(120);
+    digitalWrite(BUZZER_PIN, LOW);
+    delay(80);
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(120);
+    digitalWrite(BUZZER_PIN, LOW);
+  } else {
+    digitalWrite(BUZZER_PIN, LOW);
+  }
 }
 
 void showStatusOnOLED(
@@ -187,9 +203,15 @@ void setup() {
   pixels.clear();
   pixels.show();
 
+  pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW);
+
   if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS)) {
     Serial.println("ERROR: SSD1306 OLED not found at 0x3C");
     setNeoPixelStatus("critical");
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(300);
+    digitalWrite(BUZZER_PIN, LOW);
     while (1) {
       delay(1000);
     }
@@ -203,6 +225,9 @@ void setup() {
     Serial.println("ERROR: BME280 not found at 0x76");
     setNeoPixelStatus("critical");
     showErrorOnOLED("BME280 not found");
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(300);
+    digitalWrite(BUZZER_PIN, LOW);
     while (1) {
       delay(1000);
     }
@@ -212,6 +237,9 @@ void setup() {
     Serial.println("ERROR: BH1750 not found at 0x23");
     setNeoPixelStatus("critical");
     showErrorOnOLED("BH1750 not found");
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(300);
+    digitalWrite(BUZZER_PIN, LOW);
     while (1) {
       delay(1000);
     }
@@ -221,6 +249,9 @@ void setup() {
     Serial.println("ERROR: VL53LDK/VL53L0X not found at 0x29");
     setNeoPixelStatus("critical");
     showErrorOnOLED("VL53L0X not found");
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(300);
+    digitalWrite(BUZZER_PIN, LOW);
     while (1) {
       delay(1000);
     }
@@ -280,6 +311,8 @@ void loop() {
     distance_cm,
     object_detected
   );
+
+  updateBuzzerStatus(predicted_condition);
 
   Serial.print(temperature_c, 2);
   Serial.print(",");
