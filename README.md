@@ -4,7 +4,7 @@ Aerospace-inspired embedded machine learning system for monitoring environmental
 
 This project demonstrates a complete TinyML-style workflow:
 
-`synthetic sensor data generation → model training → evaluation → decision rule export → ESP32 sensor logging → real sensor dataset collection → real model training → synthetic-vs-real model comparison → filtered Round2 real dataset → embedded-friendly decision rules`
+`synthetic sensor data generation → model training → evaluation → decision rule export → ESP32 sensor logging → real sensor dataset collection → real model training → synthetic-vs-real model comparison → filtered Round2 real dataset → embedded-friendly decision rules → ESP32 embedded inference → OLED / NeoPixel / buzzer hardware feedback`
 
 The goal is not to build a real aircraft safety system. Instead, this project is an educational embedded AI prototype inspired by aerospace-style condition monitoring and onboard environmental sensing.
 
@@ -27,7 +27,12 @@ The system is designed around an ESP32-based embedded sensor node. The current i
 - comparison between synthetic-trained and real-trained models
 - a larger filtered Round2 real dataset
 - an embedded-friendly decision tree model trained on real sensor data
-- exported decision rules for later ESP32 deployment
+- exported decision rules for ESP32 deployment
+- ESP32 firmware inference using embedded threshold logic
+- live Serial output with predicted condition
+- NeoPixel visual status output
+- OLED live condition display
+- buzzer alert for critical conditions
 
 Input features:
 
@@ -40,11 +45,13 @@ Input features:
 
 The main machine learning model is a lightweight `DecisionTreeClassifier`, selected because it is interpretable, suitable for small embedded datasets, and easier to convert into embedded rule-based logic for ESP32 deployment.
 
+For the final firmware demo, the learned decision-tree thresholds are converted into safety-prioritized embedded `if-else` logic. Proximity-based critical conditions are prioritized in firmware to make the embedded behavior more robust during real hardware testing.
+
 ---
 
 ## Motivation
 
-Embedded monitoring systems often need to make decisions directly on low-power hardware. Instead of relying on a large cloud-based model, this project explores a small and explainable ML pipeline that can eventually be deployed on an ESP32.
+Embedded monitoring systems often need to make decisions directly on low-power hardware. Instead of relying on a large cloud-based model, this project explores a small and explainable ML pipeline that can run directly on an ESP32.
 
 The project focuses on:
 
@@ -57,6 +64,7 @@ The project focuses on:
 - edge intelligence on microcontrollers
 - real-world validation of sensor-based ML models
 - converting trained decision rules into embedded firmware logic
+- hardware feedback using OLED, NeoPixel LEDs, and buzzer alerts
 
 ---
 
@@ -64,7 +72,7 @@ The project focuses on:
 
 The embedded target is an ESP32-based sensor node.
 
-Hardware components used or planned:
+Hardware components used:
 
 - ESP32
 - BME280 temperature, pressure, and humidity sensor
@@ -74,9 +82,9 @@ Hardware components used or planned:
 - NeoPixel LEDs
 - buzzer
 
-The current hardware stage includes real sensor logging over Serial using BME280, BH1750, and the VL53LDK / VL53L0X-compatible distance sensor.
+The current hardware stage includes real sensor logging, embedded inference, live OLED display output, NeoPixel status colors, and buzzer alerts.
 
-OLED, NeoPixel LEDs, and buzzer are planned for the next embedded inference stage.
+The firmware reads sensor data over I2C, predicts the current condition on-device, prints the result over Serial, displays the condition on OLED, updates NeoPixel colors, and activates the buzzer for critical conditions.
 
 ---
 
@@ -195,9 +203,9 @@ This is important because the model can later be converted into embedded `if-els
 
 ---
 
-## ESP32 Sensor Logger
+## ESP32 Sensor Logger and Embedded Inference Firmware
 
-The project includes Arduino firmware for reading real sensor values from the ESP32 hardware prototype.
+The project includes Arduino firmware for reading real sensor values from the ESP32 hardware prototype and performing embedded inference.
 
 Firmware file:
 
@@ -209,11 +217,79 @@ The firmware reads:
 - light intensity from BH1750
 - short-range distance from the VL53LDK / VL53L0X-compatible distance sensor
 
-The ESP32 sends CSV-formatted readings over Serial.
+The ESP32 sends CSV-formatted readings over Serial, including the predicted condition.
 
 Example Serial output:
 
-`temperature_c,pressure_hpa,humidity_percent,light_lux,distance_cm,object_detected`
+`temperature_c,pressure_hpa,humidity_percent,light_lux,distance_cm,object_detected,predicted_condition`
+
+Example row:
+
+`27.14,840.60,15.87,155.00,6.20,1,critical`
+
+The firmware also provides real-time hardware feedback:
+
+- OLED display shows the current condition and live sensor values
+- NeoPixel LEDs show condition status using color
+- buzzer activates for critical conditions
+
+---
+
+## Embedded Hardware Feedback
+
+The deployed ESP32 firmware maps predicted conditions to physical outputs.
+
+### Serial Output
+
+The ESP32 prints live sensor readings and the predicted condition over Serial.
+
+Output columns:
+
+- `temperature_c`
+- `pressure_hpa`
+- `humidity_percent`
+- `light_lux`
+- `distance_cm`
+- `object_detected`
+- `predicted_condition`
+
+### OLED Display
+
+The OLED display shows the live condition and key sensor values.
+
+Displayed information includes:
+
+- predicted condition
+- light intensity
+- distance
+- humidity
+- object detection flag
+
+Example display content:
+
+`NORMAL`, `WARNING`, or `CRITICAL`
+
+### NeoPixel Status LEDs
+
+NeoPixel LEDs provide a simple visual status indicator:
+
+- `normal` → green
+- `warning` → yellow/orange
+- `critical` → red
+
+### Buzzer Alert
+
+The buzzer is used as an audible alert for critical conditions.
+
+Behavior:
+
+- `normal` → buzzer off
+- `warning` → buzzer off
+- `critical` → short beep alert
+
+This creates a complete embedded feedback loop:
+
+`sensor readings → ESP32 inference → Serial output → OLED display → NeoPixel status → buzzer alert`
 
 ---
 
@@ -489,27 +565,56 @@ Exported rules:
 |   |   |--- class: warning
 ```
 
-The exported rules are suitable for conversion into ESP32 `if-else` logic. The model separates the three condition classes using light intensity, distance, object detection, and humidity.
+The exported rules were used as the basis for ESP32 firmware inference. During hardware testing, the firmware logic was adapted into a safety-prioritized version where proximity conditions are checked before light and humidity. This prevents close objects from being classified as normal under high-light conditions.
 
-For firmware deployment, the decision logic may be simplified into more robust manually written thresholds based on these learned rules. For example:
+The final embedded logic follows this behavior:
 
-- very low light can trigger `critical`
-- very close distance can trigger `critical`
-- medium distance can trigger `warning`
-- high humidity can trigger `warning`
-- otherwise the condition can remain `normal`
+- very close object detection triggers `critical`
+- medium-range object detection triggers `warning`
+- very low light triggers `critical`
+- low light triggers `warning`
+- high humidity triggers `warning`
+- otherwise the condition remains `normal`
 
-The next embedded step is to implement the decision logic directly in ESP32 firmware and connect the predicted condition to:
+This makes the deployed ESP32 behavior more robust and more intuitive for a physical monitoring demo.
 
-- OLED display output
-- NeoPixel status colors
-- buzzer alerts
+---
+
+## Embedded Deployment Demo
+
+The current firmware implements a complete embedded deployment demo on ESP32.
+
+Firmware file:
+
+`firmware/sensor_logger/sensor_logger.ino`
+
+Implemented embedded features:
+
+- sensor initialization over I2C
+- BME280 environmental readings
+- BH1750 light readings
+- VL53L0X-compatible distance readings
+- embedded condition inference
+- Serial output with predicted condition
+- OLED live status display
+- NeoPixel condition colors
+- buzzer alert for critical conditions
+
+Condition output behavior:
+
+| Condition | NeoPixel | OLED | Buzzer |
+|---|---|---|---|
+| `normal` | green | `NORMAL` | off |
+| `warning` | yellow/orange | `WARNING` | off |
+| `critical` | red | `CRITICAL` | beep alert |
+
+The deployed embedded demo shows the full edge-AI workflow: the ESP32 reads sensors, performs local inference, and provides immediate visual and audible feedback without needing a cloud service.
 
 ---
 
 ## Current Real Data Status
 
-The project now contains two real-data stages:
+The project now contains two real-data stages.
 
 ### Initial Real Dataset
 
@@ -607,6 +712,34 @@ View the exported Round2 rules:
 
 ---
 
+## Firmware Setup
+
+The ESP32 firmware is located at:
+
+`firmware/sensor_logger/sensor_logger.ino`
+
+Required Arduino libraries:
+
+- `Adafruit BME280 Library`
+- `Adafruit Unified Sensor`
+- `BH1750`
+- `Adafruit VL53L0X`
+- `Adafruit NeoPixel`
+- `Adafruit GFX Library`
+- `Adafruit SSD1306`
+
+Default hardware pins:
+
+- I2C SDA: GPIO 21
+- I2C SCL: GPIO 22
+- NeoPixel data pin: GPIO 27
+- Buzzer pin: GPIO 23
+- OLED I2C address: `0x3C`
+
+Upload the firmware using Arduino IDE or a compatible ESP32 upload workflow.
+
+---
+
 ## Current Status
 
 Completed:
@@ -629,14 +762,19 @@ Completed:
 - filtered Round2 real sensor dataset
 - embedded-friendly Round2 decision tree model
 - exported Round2 embedded decision rules
+- ESP32 embedded inference logic
+- Serial output with predicted condition
+- NeoPixel status output
+- OLED live condition display
+- buzzer critical alert
 
 Next steps:
 
-- convert Round2 embedded decision rules into ESP32 firmware logic
-- display predicted condition on OLED
-- show condition status using NeoPixel LEDs
-- trigger buzzer alerts for critical conditions
-- optionally compare with a small neural network baseline later
+- add photos or demo GIFs of the hardware prototype
+- document the wiring diagram
+- optionally add a small neural network baseline for comparison
+- optionally test the embedded logic in different rooms and lighting conditions
+- optionally create a short project report or portfolio case study
 
 ---
 
@@ -661,6 +799,8 @@ The Round2 real dataset is larger and cleaner, but it is still collected in one 
 The real-data models perform very well on the collected controlled scenario datasets, but this should not be interpreted as proof of general real-world reliability.
 
 The synthetic-trained model performs poorly on the collected real dataset, showing that the synthetic distribution does not fully match real sensor behavior. This is a useful validation result and motivates real-world data collection.
+
+The final ESP32 firmware uses safety-prioritized embedded threshold logic derived from the learned decision tree rules. This makes the hardware behavior more robust, but it should still be interpreted as an educational prototype rather than a certified safety system.
 
 This project should not be interpreted as a real aircraft monitoring, navigation, or safety system. It is an educational embedded AI prototype inspired by aerospace condition monitoring concepts.
 
