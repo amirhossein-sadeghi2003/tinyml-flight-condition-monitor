@@ -37,36 +37,52 @@ Adafruit_SSD1306 display(
   OLED_RESET
 );
 
-String predictCondition(
+String predicted_condition = "normal";
+String prediction_reason = "Safe";
+
+void predictCondition(
   float humidity_percent,
   float light_lux,
   float distance_cm,
   int object_detected
 ) {
-  // Embedded safety-prioritized inference logic
-  // Based on Round2 decision tree rules, with proximity prioritized for firmware use.
+  // Embedded safety-prioritized inference logic.
+  // Based on Round2 decision tree rules, adapted for robust firmware behavior.
+  // The firmware checks proximity first so that close objects are never hidden
+  // by high light or otherwise normal environmental readings.
 
   if (object_detected == 1) {
     if (distance_cm <= 28.75) {
-      return "critical";
+      predicted_condition = "critical";
+      prediction_reason = "Close Object";
+      return;
     } else if (distance_cm <= 50.00) {
-      return "warning";
+      predicted_condition = "warning";
+      prediction_reason = "Medium Dist";
+      return;
     }
   }
 
   if (light_lux <= 10.00) {
-    return "critical";
+    predicted_condition = "critical";
+    prediction_reason = "Very Low Light";
+    return;
   }
 
   if (light_lux <= 35.00) {
-    return "warning";
+    predicted_condition = "warning";
+    prediction_reason = "Low Light";
+    return;
   }
 
   if (humidity_percent > 29.50) {
-    return "warning";
+    predicted_condition = "warning";
+    prediction_reason = "High Humidity";
+    return;
   }
 
-  return "normal";
+  predicted_condition = "normal";
+  prediction_reason = "Safe";
 }
 
 void setNeoPixelStatus(String condition) {
@@ -105,6 +121,7 @@ void updateBuzzerStatus(String condition) {
 
 void showStatusOnOLED(
   String condition,
+  String reason,
   float temperature_c,
   float humidity_percent,
   float light_lux,
@@ -112,17 +129,21 @@ void showStatusOnOLED(
   int object_detected
 ) {
   display.clearDisplay();
-
   display.setTextColor(SSD1306_WHITE);
 
+  // Header in the yellow area of the two-color OLED
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("Flight Cond Monitor");
 
   display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
 
-  display.setTextSize(2);
-  display.setCursor(0, 16);
+  // Main condition, moved lower to avoid yellow/blue boundary
+  display.setTextSize(1);
+  display.setCursor(0, 18);
+  display.print("STATUS:");
+
+  display.setCursor(48, 18);
 
   if (condition == "normal") {
     display.print("NORMAL");
@@ -134,22 +155,32 @@ void showStatusOnOLED(
     display.print("UNKNOWN");
   }
 
-  display.setTextSize(1);
+  // Show cause only for warning and critical
+  display.setCursor(0, 29);
 
-  display.setCursor(0, 40);
+  if (condition == "normal") {
+    display.print("System stable");
+  } else {
+    display.print("Cause:");
+    display.print(reason);
+  }
+
+  display.setCursor(0, 41);
   display.print("L:");
   display.print(light_lux, 0);
-  display.print("lx ");
+  display.print(" lux");
 
+  display.setCursor(68, 41);
   display.print("D:");
-  display.print(distance_cm, 1);
+  display.print(distance_cm, 0);
   display.print("cm");
 
-  display.setCursor(0, 52);
+  display.setCursor(0, 53);
   display.print("H:");
   display.print(humidity_percent, 1);
-  display.print("% ");
+  display.print("%");
 
+  display.setCursor(68, 53);
   display.print("Obj:");
   display.print(object_detected);
 
@@ -258,7 +289,7 @@ void setup() {
   }
 
   Serial.println("Sensors initialized successfully");
-  Serial.println("temperature_c,pressure_hpa,humidity_percent,light_lux,distance_cm,object_detected,predicted_condition");
+  Serial.println("temperature_c,pressure_hpa,humidity_percent,light_lux,distance_cm,object_detected,predicted_condition,prediction_reason");
 
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
@@ -294,7 +325,7 @@ void loop() {
     }
   }
 
-  String predicted_condition = predictCondition(
+  predictCondition(
     humidity_percent,
     light_lux,
     distance_cm,
@@ -305,6 +336,7 @@ void loop() {
 
   showStatusOnOLED(
     predicted_condition,
+    prediction_reason,
     temperature_c,
     humidity_percent,
     light_lux,
@@ -326,7 +358,9 @@ void loop() {
   Serial.print(",");
   Serial.print(object_detected);
   Serial.print(",");
-  Serial.println(predicted_condition);
+  Serial.print(predicted_condition);
+  Serial.print(",");
+  Serial.println(prediction_reason);
 
   delay(1000);
 }
