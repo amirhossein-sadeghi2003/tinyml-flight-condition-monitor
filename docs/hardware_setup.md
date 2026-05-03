@@ -2,23 +2,71 @@
 
 ## Overview
 
-This project is designed for an ESP32-based embedded sensor node. The hardware collects environmental, ambient light, and short-range distance data, then uses these readings for condition monitoring and future embedded machine learning inference.
+This project uses an ESP32-based embedded sensor node for an educational TinyML / Embedded AI condition monitoring prototype inspired by aerospace-style monitoring systems.
 
-The current project stage focuses on the machine learning pipeline using synthetic data. The hardware setup described here represents the planned real sensor system for the next development stages.
+The hardware collects environmental, ambient light, and short-range proximity data, runs lightweight embedded inference on the ESP32, and provides local feedback using:
+
+- OLED display
+- NeoPixel LEDs
+- buzzer alert
+
+The current hardware prototype has been built and tested with real sensors.
 
 ---
 
-## Planned Hardware Components
+## Hardware Components
 
 | Component | Purpose |
 |---|---|
-| ESP32 | Main microcontroller and embedded inference target |
+| ESP32 DevKit / ESP-WROOM-32 | Main microcontroller and embedded inference target |
 | BME280 | Measures temperature, pressure, and humidity |
-| BH1750 | Measures ambient light intensity |
-| VL53LDK Time-of-Flight distance sensor | Measures short-range distance and detects nearby objects |
-| OLED display | Shows sensor readings and predicted condition |
-| NeoPixel LEDs | Provides visual status indication |
-| Buzzer | Provides audible alert for critical conditions |
+| BH1750 | Measures ambient light intensity in lux |
+| VL53LDK / VL53L0X-compatible ToF sensor | Measures short-range distance and object proximity |
+| SSD1306 OLED display | Shows live status, cause, and sensor readings |
+| NeoPixel LEDs | Shows visual condition status |
+| Buzzer | Provides audible alert for critical condition |
+| Breadboard and jumper wires | Prototype wiring |
+| External breadboard power rail/module | Used for powering the hardware setup |
+
+---
+
+## Pin Mapping Summary
+
+| Component | Signal | ESP32 Pin | Notes |
+|---|---:|---:|---|
+| BME280 | SDA | GPIO 21 | Shared I2C bus |
+| BME280 | SCL | GPIO 22 | Shared I2C bus |
+| BH1750 | SDA | GPIO 21 | Shared I2C bus |
+| BH1750 | SCL | GPIO 22 | Shared I2C bus |
+| VL53LDK / VL53L0X | SDA | GPIO 21 | Shared I2C bus |
+| VL53LDK / VL53L0X | SCL | GPIO 22 | Shared I2C bus |
+| SSD1306 OLED | SDA | GPIO 21 | Shared I2C bus |
+| SSD1306 OLED | SCL | GPIO 22 | Shared I2C bus |
+| NeoPixel LEDs | DIN | GPIO 27 | 3 LEDs used |
+| Buzzer | Signal | GPIO 23 | Beeps only for critical condition |
+| All modules | GND | ESP32 GND | Common ground required |
+| Sensor modules | VCC | 3.3V | Depending on module rating |
+| NeoPixel LEDs | VCC | External rail / suitable supply | Common GND with ESP32 required |
+
+---
+
+## I2C Bus
+
+The BME280, BH1750, VL53LDK / VL53L0X, and OLED display share the same I2C bus.
+
+```text
+SDA: GPIO 21
+SCL: GPIO 22
+```
+
+I2C addresses used in the current firmware:
+
+| Device | I2C Address |
+|---|---:|
+| BME280 | `0x76` |
+| BH1750 | `0x23` |
+| VL53LDK / VL53L0X | `0x29` |
+| SSD1306 OLED | `0x3C` |
 
 ---
 
@@ -26,19 +74,21 @@ The current project stage focuses on the machine learning pipeline using synthet
 
 ### BME280
 
-The BME280 provides three environmental measurements:
+The BME280 provides:
 
 - temperature in Celsius
-- atmospheric pressure in hPa
+- pressure in hPa
 - relative humidity in percent
 
-These values are used to monitor environmental changes and detect abnormal operating conditions.
+In the final embedded-friendly inference logic, humidity is the main BME280 feature used directly by the ESP32 threshold rules.
 
-In the current ML feature set, the BME280 contributes:
+Related feature:
 
-- `temperature_c`
-- `pressure_hpa`
-- `humidity_percent`
+```text
+humidity_percent
+```
+
+Temperature and pressure are still logged and displayed, but they are not part of the final embedded-friendly Round2 model.
 
 ---
 
@@ -46,219 +96,308 @@ In the current ML feature set, the BME280 contributes:
 
 The BH1750 measures ambient light intensity in lux.
 
-Light level is used as an environmental feature in the condition monitoring model. Very low light levels can contribute to `warning` or `critical` conditions in the prototype classification logic.
+Related feature:
 
-In the current ML feature set, the BH1750 contributes:
+```text
+light_lux
+```
 
-- `light_lux`
+Light is used to detect low-light and very-low-light conditions.
+
+Approximate interpretation during testing:
+
+| Lux Range | Meaning |
+|---:|---|
+| 0–10 lux | Very dark |
+| 10–35 lux | Low light |
+| 30–100 lux | Dim / medium indoor light |
+| 100–300 lux | Brighter indoor light |
 
 ---
 
-### VL53LDK Time-of-Flight Distance Sensor
+### VL53LDK / VL53L0X Distance Sensor
 
-The VL53LDK is used as the short-range distance and proximity sensing module in this project.
+The distance sensor is used as a short-range proximity sensor.
 
-In this project, the distance sensor is treated as a short-range proximity-aware sensor rather than an altitude, navigation, or flight control sensor. Its role is to detect whether an object is close to the monitoring node.
+Related features:
 
-The model uses two related features from this sensor:
+```text
+distance_cm
+object_detected
+```
 
-- `distance_cm`
-- `object_detected`
-
-If a valid object distance is detected, `object_detected` is set to `1` and `distance_cm` stores the measured distance.
-
-If no object is detected within the useful range, `object_detected` is set to `0` and `distance_cm` is assigned a placeholder value such as `100`.
-
-This design avoids treating missing distance readings as real continuous distance measurements.
+The firmware uses an `object_detected` flag to avoid treating invalid or out-of-range measurements as real object distances.
 
 Example interpretation:
 
-- no object detected → `object_detected = 0`, `distance_cm = 100`
-- object detected at 45 cm → warning-level proximity
-- object detected at 20 cm → critical-level proximity
+| Sensor Situation | `object_detected` | `distance_cm` |
+|---|---:|---:|
+| No valid object detected | 0 | 100 |
+| Object around 45 cm | 1 | 45 |
+| Object around 20 cm | 1 | 20 |
+
+In the final embedded inference logic:
+
+| Condition | Interpretation |
+|---|---|
+| object detected and distance `<= 28.75 cm` | critical |
+| object detected and distance `<= 50.00 cm` | warning |
 
 ---
 
 ## Output Devices
 
-### OLED Display
+### SSD1306 OLED Display
 
-The OLED display will be used to show real-time system information such as:
+The OLED display shows:
 
-- temperature
-- pressure
-- humidity
-- light level
-- distance or object detection state
-- predicted condition class
+- project header
+- predicted condition
+- cause/reason for warning or critical state
+- live sensor values
 
-The OLED makes the embedded node easier to debug and demonstrate without requiring a computer connection.
+Final displayed status behavior:
+
+| Condition | OLED Message |
+|---|---|
+| `normal` | `System stable` |
+| `warning` | `Cause:<reason>` |
+| `critical` | `Cause:<reason>` |
+
+The OLED used in this prototype is a two-color SSD1306 display:
+
+- top band: yellow
+- lower area: blue
+
+Because of this display layout, the final firmware moves the main `STATUS` line lower on the screen to avoid unwanted yellow tint.
 
 ---
 
 ### NeoPixel LEDs
 
-NeoPixel LEDs will provide a simple visual status indicator.
+The prototype uses 3 NeoPixel LEDs.
 
-Planned status colors:
+NeoPixel data pin:
 
-- green for `normal`
-- yellow for `warning`
-- red for `critical`
+```text
+GPIO 27
+```
 
-This allows the system condition to be understood quickly without reading numeric values.
+Status colors:
+
+| Condition | NeoPixel Color |
+|---|---|
+| `normal` | Green |
+| `warning` | Yellow / orange |
+| `critical` | Red |
+
+Only 3 LEDs are used because they clearly show the system state while keeping current consumption lower.
+
+Important: NeoPixel GND must be connected to ESP32 GND.
 
 ---
 
 ### Buzzer
 
-The buzzer will be used as an audible alert device.
+The buzzer signal pin is connected to:
 
-In the initial embedded version, the buzzer will activate only when the predicted condition is `critical`.
+```text
+GPIO 23
+```
 
-In later versions, the buzzer logic can be extended to support different alert patterns for different severity levels.
+The buzzer is used only for the `critical` condition.
 
----
-
-## Planned I2C Devices
-
-The BME280, BH1750, VL53LDK, and OLED display commonly use I2C communication.
-
-Typical ESP32 I2C pins:
-
-| Signal | ESP32 Pin |
+| Condition | Buzzer |
 |---|---|
-| SDA | GPIO 21 |
-| SCL | GPIO 22 |
-
-The exact wiring may be adjusted depending on the specific ESP32 board and sensor modules.
-
-Before writing the final firmware, the I2C addresses of the connected modules should be checked using an I2C scanner sketch.
+| `normal` | Off |
+| `warning` | Off |
+| `critical` | Beep alert |
 
 ---
 
-## Planned Output Pins
+## Embedded Inference Logic
 
-The exact output pins can be adjusted during firmware development.
+The firmware uses safety-prioritized embedded threshold logic derived from the trained Round2 decision tree rules.
 
-A possible initial pin assignment is:
+Final firmware logic:
 
-| Device | ESP32 Pin |
-|---|---|
-| NeoPixel data pin | GPIO 5 |
-| Buzzer signal pin | GPIO 18 |
+```cpp
+if (object_detected == 1) {
+  if (distance_cm <= 28.75) {
+    predicted_condition = "critical";
+    prediction_reason = "Close Object";
+    return;
+  } else if (distance_cm <= 50.00) {
+    predicted_condition = "warning";
+    prediction_reason = "Medium Dist";
+    return;
+  }
+}
 
-These pins are only planned defaults and may be changed depending on wiring convenience and board constraints.
+if (light_lux <= 10.00) {
+  predicted_condition = "critical";
+  prediction_reason = "Very Low Light";
+  return;
+}
 
----
+if (light_lux <= 35.00) {
+  predicted_condition = "warning";
+  prediction_reason = "Low Light";
+  return;
+}
 
-## Planned System Flow
+if (humidity_percent > 29.50) {
+  predicted_condition = "warning";
+  prediction_reason = "High Humidity";
+  return;
+}
 
-The planned hardware flow is:
+predicted_condition = "normal";
+prediction_reason = "Safe";
+```
 
-`Sensors → ESP32 → Feature Vector → Classifier → OLED / NeoPixel / Buzzer`
-
-The ESP32 will read sensor values, build a feature vector, run lightweight classification logic, and update the output devices based on the predicted condition.
-
----
-
-## Feature Vector
-
-The embedded classifier is planned to use the same feature structure as the current ML pipeline:
-
-| Feature | Source |
-|---|---|
-| `temperature_c` | BME280 |
-| `pressure_hpa` | BME280 |
-| `humidity_percent` | BME280 |
-| `light_lux` | BH1750 |
-| `distance_cm` | VL53LDK |
-| `object_detected` | Derived from VL53LDK reading |
-
-This keeps the synthetic ML pipeline and the future embedded sensor pipeline consistent.
-
----
-
-## Condition Output Mapping
-
-The predicted class will be mapped to the output devices.
-
-| Predicted Class | OLED | NeoPixel | Buzzer |
-|---|---|---|---|
-| `normal` | Shows normal status | Green | Off |
-| `warning` | Shows warning status | Yellow | Off or short alert |
-| `critical` | Shows critical status | Red | On or repeated alert |
+The firmware intentionally prioritizes proximity before light and humidity so that close-object detection has immediate priority in the embedded demo.
 
 ---
 
-## Development Stages
+## Serial Output
 
-### Stage 1: Synthetic ML Prototype
+The firmware outputs live CSV-style rows over Serial.
 
-Completed in the current project stage.
+Columns:
 
-The ML pipeline is developed using synthetic sensor data before connecting the real hardware.
+```text
+temperature_c,pressure_hpa,humidity_percent,light_lux,distance_cm,object_detected,predicted_condition,prediction_reason
+```
 
-Completed components:
+Example:
 
-- synthetic dataset generation
-- decision tree model training
-- model evaluation
-- confusion matrix generation
-- feature importance visualization
-- decision rule export
-
----
-
-### Stage 2: Sensor Logger Firmware
-
-The ESP32 will read real sensor values and send them to a computer over Serial.
-
-The Serial output will include:
-
-- temperature
-- pressure
-- humidity
-- light level
-- distance
-- object detection state
-
-These readings will later be saved as CSV data on the computer.
+```text
+27.14,840.60,15.87,155.00,6.20,1,critical,Close Object
+```
 
 ---
 
-### Stage 3: Real Dataset Collection
+## Firmware File
 
-Real sensor readings will be collected under different environmental and proximity scenarios.
+Main firmware file:
 
-This stage will make it possible to compare:
+```text
+firmware/sensor_logger/sensor_logger.ino
+```
 
-- synthetic sensor data
-- real sensor data
-- model behavior on real measurements
+The firmware includes:
 
----
-
-### Stage 4: Embedded Inference
-
-The trained decision tree rules will be converted into embedded logic and deployed on the ESP32.
-
-The first embedded classifier can be implemented as simple `if-else` logic based on the exported decision tree rules.
-
----
-
-### Stage 5: Output Integration
-
-The final embedded prototype will display the predicted condition using:
-
-- OLED text output
-- NeoPixel color status
-- buzzer alert for critical states
+- BME280 reading
+- BH1750 reading
+- VL53LDK / VL53L0X distance reading
+- embedded condition prediction
+- prediction reason
+- Serial CSV output
+- OLED live status display
+- NeoPixel status colors
+- buzzer alert for critical condition
 
 ---
 
-## Notes
+## Required Arduino Libraries
 
-This hardware setup is intended for an educational embedded AI prototype.
+Required Arduino libraries:
 
-The project does not claim to implement a real aircraft monitoring, navigation, or safety system. It is an aerospace-inspired condition monitoring prototype designed to demonstrate sensor-based TinyML and embedded inference concepts.
+- Adafruit BME280 Library
+- Adafruit Unified Sensor
+- BH1750
+- Adafruit VL53L0X
+- Adafruit NeoPixel
+- Adafruit GFX Library
+- Adafruit SSD1306
+
+Firmware includes:
+
+```cpp
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+#include <BH1750.h>
+#include <Adafruit_VL53L0X.h>
+#include <Adafruit_NeoPixel.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+```
+
+---
+
+## Common Ground Requirement
+
+All modules must share a common ground with the ESP32.
+
+This is especially important when using:
+
+- external breadboard power rail
+- NeoPixel LEDs
+- buzzer
+- sensor modules
+
+Without common ground, signal pins may behave unpredictably even if each module appears to be powered.
+
+---
+
+## Arduino Sketch Folder Note
+
+Arduino IDE compiles all `.ino` files inside the same sketch folder.
+
+Do not keep backup `.ino` files inside:
+
+```text
+firmware/sensor_logger/
+```
+
+Otherwise, Arduino IDE may produce duplicate definition errors such as:
+
+```text
+redefinition of 'void setup()'
+redefinition of 'void loop()'
+redefinition of 'Adafruit_BME280 bme'
+```
+
+Recommended options:
+
+- move backup firmware files outside the sketch folder
+- rename backups with a non-`.ino` extension
+- place old versions under a separate archive folder
+
+---
+
+## Hardware Demo Photos
+
+Hardware demo photos are stored in:
+
+```text
+assets/hardware/
+```
+
+Current photos:
+
+```text
+assets/hardware/full_setup.jpg
+assets/hardware/oled_normal.jpg
+assets/hardware/oled_warning.jpg
+assets/hardware/oled_critical.jpg
+assets/hardware/neopixel_critical.jpg
+```
+
+These photos show the physical ESP32 prototype, OLED status output, and NeoPixel critical alert behavior.
+
+---
+
+## Safety Note
+
+This project is not a real aircraft safety or flight control system.
+
+It is an educational embedded AI prototype inspired by aerospace-style condition monitoring, designed to demonstrate:
+
+- sensor data collection
+- TinyML-style model development
+- real hardware deployment
+- interpretable embedded inference
+- local visual and audible feedback
