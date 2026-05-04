@@ -35,6 +35,7 @@ The system is designed around an ESP32-based embedded sensor node. The current i
 - NeoPixel visual status output
 - buzzer alert for critical conditions
 - hardware demo photos
+- project documentation for system overview and hardware setup
 
 Input features:
 
@@ -87,6 +88,8 @@ Hardware components used:
 The current hardware stage includes real sensor logging, embedded inference, live OLED display output, NeoPixel status colors, and buzzer alerts.
 
 The firmware reads sensor data over I2C, predicts the current condition on-device, prints the result over Serial, displays the condition and cause on OLED, updates NeoPixel colors, and activates the buzzer for critical conditions.
+
+Detailed hardware wiring and setup notes are available in [`docs/hardware_setup.md`](docs/hardware_setup.md).
 
 ---
 
@@ -682,6 +685,17 @@ The Round2 dataset is currently the preferred real dataset for embedded inferenc
 
 ---
 
+## Documentation
+
+Additional project documentation is available here:
+
+| Document | Description |
+|---|---|
+| [`docs/system_overview.md`](docs/system_overview.md) | End-to-end system architecture, ML workflow, embedded inference, and current project status |
+| [`docs/hardware_setup.md`](docs/hardware_setup.md) | ESP32 wiring, sensor roles, I2C addresses, output devices, and hardware notes |
+
+---
+
 ## Repository Structure
 
 - `data/` synthetic and real sensor datasets
@@ -772,6 +786,8 @@ Default hardware pins:
 - Buzzer pin: GPIO 23
 - OLED I2C address: `0x3C`
 
+Detailed hardware setup is documented in [`docs/hardware_setup.md`](docs/hardware_setup.md).
+
 Upload the firmware using Arduino IDE or a compatible ESP32 upload workflow.
 
 ---
@@ -805,11 +821,13 @@ Completed:
 - OLED live condition and cause display
 - buzzer critical alert
 - hardware demo photos
+- system overview documentation
+- hardware setup documentation
 
 Next steps:
 
-- document the wiring diagram
 - optionally add a short demo video or GIF
+- optionally improve or crop/rotate OLED photos
 - optionally add a small neural network baseline for comparison
 - optionally test the embedded logic in different rooms and lighting conditions
 - optionally create a portfolio case study or project report
