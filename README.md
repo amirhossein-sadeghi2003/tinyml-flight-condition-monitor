@@ -91,6 +91,8 @@ The firmware reads sensor data over I2C, predicts the current condition on-devic
 
 Detailed hardware wiring and setup notes are available in [`docs/hardware_setup.md`](docs/hardware_setup.md).
 
+The embedded inference logic and the safety-prioritized adaptation from Decision Tree rules to ESP32 firmware are explained in [`docs/embedded_inference_explanation.md`](docs/embedded_inference_explanation.md).
+
 ---
 
 ## Condition Classes
@@ -692,6 +694,7 @@ Additional project documentation is available here:
 | Document | Description |
 |---|---|
 | [`docs/system_overview.md`](docs/system_overview.md) | End-to-end system architecture, ML workflow, embedded inference, and current project status |
+| [`docs/embedded_inference_explanation.md`](docs/embedded_inference_explanation.md) | Explains how the trained Decision Tree thresholds are adapted into safety-prioritized ESP32 firmware logic |
 | [`docs/hardware_setup.md`](docs/hardware_setup.md) | ESP32 wiring, sensor roles, I2C addresses, output devices, and hardware notes |
 
 ---
