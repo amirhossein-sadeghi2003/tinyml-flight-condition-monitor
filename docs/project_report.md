@@ -395,7 +395,7 @@ Possible future improvements:
 
 - collect a small robustness test dataset in a different room or lighting condition
 - test the firmware under more varied sensor placements
-- add a short demo video or GIF
+- add additional demo videos or GIFs under more varied conditions
 - improve or rotate/crop OLED photos
 - add an optional MLP baseline for comparison only
 - create a concise portfolio case-study page
