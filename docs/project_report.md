@@ -418,3 +418,20 @@ The project shows several important engineering ideas:
 - local hardware feedback makes the system easier to demonstrate and debug
 
 The final result is a portfolio-ready embedded AI prototype that connects machine learning, sensor data, ESP32 firmware, and physical feedback devices into one end-to-end system.
+
+## Hardware Demo Video
+
+A short hardware demonstration video is included in:
+
+`docs/media/tinyml_hardware_demo.mp4`
+
+The video shows the completed ESP32-based TinyML monitoring prototype in operation.
+
+Demo behavior:
+
+- The first few seconds show the full hardware setup.
+- Because the cooler was running in the room, the humidity-related condition is reflected as a yellow status on the NeoPixels.
+- When the light level is reduced, the system changes to a red alert state and the buzzer activates.
+- When a hand is moved in front of the distance/proximity sensor, the system again enters a red alert state and the buzzer activates.
+
+This video provides additional evidence that the project was tested as an integrated embedded hardware prototype, not only as a software model.

@@ -687,6 +687,16 @@ The Round2 dataset is currently the preferred real dataset for embedded inferenc
 
 ---
 
+
+## Hardware Demo Video
+
+A short hardware demo video is available here:
+
+[Watch the hardware demo](docs/media/tinyml_hardware_demo.mp4)
+
+The demo shows the ESP32-based prototype reacting to humidity-related status, reduced light conditions, and close-object proximity alerts using NeoPixels and buzzer feedback.
+
+
 ## Documentation
 
 Additional project documentation is available here:
