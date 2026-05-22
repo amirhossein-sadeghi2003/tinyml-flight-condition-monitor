@@ -8,7 +8,18 @@ This project demonstrates a complete TinyML-style workflow:
 
 The goal is not to build a real aircraft safety system. Instead, this project is an educational embedded AI prototype inspired by aerospace-style condition monitoring and onboard environmental sensing.
 
+## Project Highlights
+
+- Built a complete sensor-to-deployment TinyML-style workflow
+- Collected real ESP32 sensor logs in multiple controlled scenarios
+- Compared synthetic-data and real-data model behavior
+- Trained an embedded-friendly decision tree on real sensor data
+- Converted learned decision rules into ESP32 `if-else` inference logic
+- Added live OLED, NeoPixel, and buzzer feedback for physical status output
+- Documented hardware setup, embedded inference logic, photos, and demo video
+
 ---
+
 
 ## Project Overview
 
