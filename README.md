@@ -889,3 +889,18 @@ This project should not be interpreted as a real aircraft monitoring, navigation
 ## License
 
 This project is released under the MIT License.
+---
+
+## Live TinyML Condition Monitor Animation
+
+The animation below shows a live-style embedded monitoring dashboard built from the real Round2 sensor dataset.
+
+It visualizes:
+
+- recent temperature, light, distance, and humidity readings
+- the current condition label
+- scenario context
+- embedded-style status output
+
+![Live TinyML Condition Monitor](results/live_condition_monitor.gif)
+
