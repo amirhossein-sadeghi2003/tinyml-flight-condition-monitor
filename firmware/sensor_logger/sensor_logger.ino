@@ -134,7 +134,7 @@ void showStatusOnOLED(
   // Header in the yellow area of the two-color OLED
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.print("Flight Cond Monitor");
+  display.print("Condition Monitor");
 
   display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
 
@@ -193,7 +193,7 @@ void showStartupOnOLED() {
 
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.print("TinyML Flight");
+  display.print("TinyML Monitor");
 
   display.setCursor(0, 12);
   display.print("Condition Monitor");

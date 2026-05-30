@@ -1,8 +1,8 @@
 # System Overview
 
-## TinyML Flight Condition Monitor
+## TinyML Embedded Condition Monitor
 
-This project is an aerospace-inspired embedded condition monitoring prototype built around an ESP32-based sensor node.
+This project is an embedded condition monitoring prototype built around an ESP32-based sensor node.
 
 The system reads environmental, ambient light, and short-range proximity data, converts the readings into a feature vector, and classifies the current condition as one of three states:
 
@@ -10,7 +10,7 @@ The system reads environmental, ambient light, and short-range proximity data, c
 - `warning`
 - `critical`
 
-The goal is not to build a real aircraft safety system. The goal is to demonstrate a complete educational Embedded AI / TinyML workflow using real hardware, real sensor data, lightweight machine learning, and embedded deployment.
+The goal is not to build a real safety-critical system. The goal is to demonstrate a complete educational Embedded AI / TinyML workflow using real hardware, real sensor data, lightweight machine learning, and embedded deployment.
 
 ---
 
@@ -438,7 +438,7 @@ docs/       project documentation
 
 ## Limitations
 
-This project is an educational prototype, not a real aircraft monitoring or safety system.
+This project is an educational prototype, not a real safety-critical monitoring or control system.
 
 Current limitations:
 
@@ -466,6 +466,6 @@ Possible future improvements:
 
 ## Safety Note
 
-This project should not be interpreted as a real aircraft safety, navigation, or flight control system.
+This project should not be interpreted as a real safety-critical monitoring, navigation, or control system.
 
-It is an educational embedded AI prototype inspired by aerospace-style condition monitoring concepts.
+It is an educational embedded AI prototype for sensor-based condition monitoring concepts.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project uses an ESP32-based embedded sensor node for an educational TinyML / Embedded AI condition monitoring prototype inspired by aerospace-style monitoring systems.
+This project uses an ESP32-based embedded sensor node for an educational TinyML / Embedded AI condition monitoring prototype.
 
 The hardware collects environmental, ambient light, and short-range proximity data, runs lightweight embedded inference on the ESP32, and provides local feedback using:
 
@@ -392,9 +392,9 @@ These photos show the physical ESP32 prototype, OLED status output, and NeoPixel
 
 ## Safety Note
 
-This project is not a real aircraft safety or flight control system.
+This project is not a real safety-critical monitoring or control system.
 
-It is an educational embedded AI prototype inspired by aerospace-style condition monitoring, designed to demonstrate:
+It is an educational embedded AI prototype for sensor-based condition monitoring, designed to demonstrate:
 
 - sensor data collection
 - TinyML-style model development

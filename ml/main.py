@@ -26,7 +26,7 @@ def run_step(description, script_path):
 
 
 def main():
-    print("TinyML Flight Condition Monitor Pipeline")
+    print("TinyML Embedded Condition Monitor Pipeline")
 
     for description, script_path in PIPELINE_STEPS:
         run_step(description, script_path)

@@ -73,7 +73,7 @@ def main():
     ax_info = fig.add_subplot(grid[1, 2])
     ax_footer = fig.add_subplot(grid[2, 2])
 
-    fig.suptitle("TinyML Flight Condition Monitor - Live Embedded Inference Demo", fontsize=15)
+    fig.suptitle("TinyML Embedded Condition Monitor - Live Embedded Inference Demo", fontsize=15)
 
     axes = [ax_temp, ax_light, ax_distance, ax_humidity]
     for ax in axes:

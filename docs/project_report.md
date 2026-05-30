@@ -1,8 +1,8 @@
-# Project Report: TinyML Flight Condition Monitor
+# Project Report: TinyML Embedded Condition Monitor
 
 ## 1. Project Goal
 
-TinyML Flight Condition Monitor is an educational embedded AI prototype inspired by aerospace-style condition monitoring.
+TinyML Embedded Condition Monitor is an educational embedded AI prototype for sensor-based condition monitoring.
 
 The goal of the project is to demonstrate an end-to-end workflow where sensor data is collected, processed, used for lightweight machine learning, and finally deployed back onto an ESP32-based embedded system.
 
@@ -12,13 +12,13 @@ The system classifies the current sensor state into one of three conditions:
 - `warning`
 - `critical`
 
-This is not a real aircraft monitoring, navigation, or safety system. It is a portfolio-grade prototype designed to demonstrate embedded AI, TinyML-style model development, real sensor data collection, and interpretable deployment on microcontroller hardware.
+This is not a real safety-critical monitoring, navigation, or control system. It is a portfolio-grade prototype designed to demonstrate embedded AI, TinyML-style model development, real sensor data collection, and interpretable deployment on microcontroller hardware.
 
 ---
 
 ## 2. Motivation
 
-Many cyber-physical and aerospace-inspired monitoring systems need to make decisions close to the physical system they observe. Sending all data to a cloud system is not always ideal because embedded systems may have constraints such as:
+Many cyber-physical monitoring systems need to make decisions close to the physical system they observe. Sending all data to a cloud system is not always ideal because embedded systems may have constraints such as:
 
 - limited power
 - limited bandwidth
@@ -377,7 +377,7 @@ For the current project, the Decision Tree remains the main model.
 
 This project has several limitations:
 
-- the system is not a real aircraft safety system
+- the system is not a real safety-critical monitoring system
 - real data was collected in controlled indoor conditions
 - labels are scenario-based
 - the dataset is still relatively small
@@ -407,7 +407,7 @@ The next recommended improvement is a small robustness test rather than retraini
 
 ## 15. Conclusion
 
-TinyML Flight Condition Monitor demonstrates a complete embedded AI workflow from synthetic data generation to real ESP32 hardware deployment.
+TinyML Embedded Condition Monitor demonstrates a complete embedded AI workflow from synthetic data generation to real ESP32 hardware deployment.
 
 The project shows several important engineering ideas:
 
