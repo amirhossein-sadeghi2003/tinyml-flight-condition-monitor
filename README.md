@@ -1,12 +1,12 @@
-# TinyML Flight Condition Monitor
+# TinyML Embedded Condition Monitor
 
-Aerospace-inspired embedded machine learning system for monitoring environmental and proximity conditions using ESP32 sensors and lightweight classification.
+Embedded machine learning prototype for monitoring environmental and proximity conditions using ESP32 sensors and lightweight classification.
 
 This project demonstrates a complete TinyML-style workflow:
 
 `synthetic sensor data generation → model training → evaluation → decision rule export → ESP32 sensor logging → real sensor dataset collection → real model training → synthetic-vs-real comparison → filtered Round2 real dataset → embedded-friendly decision rules → ESP32 embedded inference → OLED / NeoPixel / buzzer hardware feedback`
 
-The goal is not to build a real aircraft safety system. Instead, this project is an educational embedded AI prototype inspired by aerospace-style condition monitoring and onboard environmental sensing.
+The goal is not to build a real safety-critical system. Instead, this project is an educational embedded AI prototype for sensor-based condition monitoring on microcontroller hardware.
 
 ## Project Highlights
 
@@ -74,7 +74,7 @@ The project focuses on:
 - sensor-based condition monitoring
 - cyber-physical systems
 - interpretable machine learning
-- aerospace-inspired environmental monitoring
+- embedded environmental and proximity monitoring
 - edge intelligence on microcontrollers
 - real-world validation of sensor-based ML models
 - converting trained decision rules into embedded firmware logic
@@ -882,7 +882,7 @@ The synthetic-trained model performs poorly on the collected real dataset, showi
 
 The final ESP32 firmware uses safety-prioritized embedded threshold logic derived from the learned decision tree rules. This makes the hardware behavior more robust, but it should still be interpreted as an educational prototype rather than a certified safety system.
 
-This project should not be interpreted as a real aircraft monitoring, navigation, or safety system. It is an educational embedded AI prototype inspired by aerospace condition monitoring concepts.
+This project should not be interpreted as a real safety-critical monitoring, navigation, or control system. It is an educational embedded AI prototype for sensor-based condition monitoring.
 
 ---
 
