@@ -1,0 +1,26 @@
+Round2 Embedded Decision Tree Evaluation
+========================================
+
+Dataset: data/real_labeled_sensor_data_round2.csv
+Features: ['humidity_percent', 'light_lux', 'distance_cm', 'object_detected']
+Test size: 0.25
+Random state: 42
+Holdout samples: 453
+Accuracy: 0.9934
+
+Evaluation protocol:
+Stratified row-level holdout reconstructed from the same curated Round2 dataset used during training.
+
+Limitation:
+This is a within-dataset holdout evaluation. It is not an independent recording-session or environment validation.
+
+Classification Report:
+              precision    recall  f1-score   support
+
+    critical     1.0000    1.0000    1.0000       101
+      normal     1.0000    0.9803    0.9900       152
+     warning     0.9852    1.0000    0.9926       200
+
+    accuracy                         0.9934       453
+   macro avg     0.9951    0.9934    0.9942       453
+weighted avg     0.9935    0.9934    0.9934       453
