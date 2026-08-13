@@ -1,10 +1,10 @@
-
 import os
 import joblib
 import pandas as pd
 import matplotlib.pyplot as plt
 
 from sklearn.metrics import accuracy_score, classification_report, ConfusionMatrixDisplay
+from sklearn.model_selection import train_test_split
 
 
 REAL_DATA_PATH = "data/real_labeled_sensor_data.csv"
@@ -35,6 +35,9 @@ FEATURE_COLUMNS = [
 
 LABEL_COLUMN = "label"
 
+TEST_SIZE = 0.25
+RANDOM_STATE = 42
+
 
 def load_real_data():
     if not os.path.exists(REAL_DATA_PATH):
@@ -44,6 +47,21 @@ def load_real_data():
         )
 
     return pd.read_csv(REAL_DATA_PATH)
+
+
+def create_real_holdout(df):
+    X = df[FEATURE_COLUMNS]
+    y = df[LABEL_COLUMN]
+
+    _, X_test, _, y_test = train_test_split(
+        X,
+        y,
+        test_size=TEST_SIZE,
+        random_state=RANDOM_STATE,
+        stratify=y,
+    )
+
+    return X_test, y_test
 
 
 def load_model(path):
@@ -61,7 +79,8 @@ def evaluate_model(model, X, y, model_name):
     print("=" * 70)
     print(model_name)
     print("=" * 70)
-    print(f"Accuracy on real dataset: {accuracy:.4f}")
+    print(f"Shared real holdout samples: {len(y)}")
+    print(f"Accuracy: {accuracy:.4f}")
     print()
     print("Classification Report:")
     print(classification_report(y, y_pred, zero_division=0))
@@ -88,56 +107,54 @@ def save_confusion_matrix(y_true, y_pred, title, output_path):
 
 def compare_models():
     df = load_real_data()
-
-    X_real = df[FEATURE_COLUMNS]
-    y_real = df[LABEL_COLUMN]
+    X_test, y_test = create_real_holdout(df)
 
     synthetic_model = load_model(SYNTHETIC_MODEL_PATH)
     real_model = load_model(REAL_MODEL_PATH)
 
     synthetic_pred, synthetic_accuracy = evaluate_model(
         synthetic_model,
-        X_real,
-        y_real,
-        "Synthetic-trained Decision Tree evaluated on real data",
+        X_test,
+        y_test,
+        "Synthetic-trained Decision Tree on shared real holdout",
     )
 
     real_pred, real_accuracy = evaluate_model(
         real_model,
-        X_real,
-        y_real,
-        "Real-trained Decision Tree evaluated on real data",
+        X_test,
+        y_test,
+        "Real-trained Decision Tree on shared real holdout",
     )
 
     save_confusion_matrix(
-        y_real,
+        y_test,
         synthetic_pred,
-        "Synthetic-trained Model on Real Data",
+        "Synthetic-trained Model on Shared Real Holdout",
         SYNTHETIC_ON_REAL_CM_PATH,
     )
 
     save_confusion_matrix(
-        y_real,
+        y_test,
         real_pred,
-        "Real-trained Model on Real Data",
+        "Real-trained Model on Shared Real Holdout",
         REAL_ON_REAL_CM_PATH,
     )
 
     print()
     print("Summary")
     print("-------")
-    print(f"Synthetic-trained model on real data: {synthetic_accuracy:.4f}")
-    print(f"Real-trained model on real data:      {real_accuracy:.4f}")
+    print(f"Evaluation samples:                       {len(y_test)}")
+    print(f"Synthetic-trained model on real holdout: {synthetic_accuracy:.4f}")
+    print(f"Real-trained model on real holdout:      {real_accuracy:.4f}")
 
     if synthetic_accuracy < real_accuracy:
         print()
         print(
-            "The real-trained model performs better on the collected real dataset. "
-            "This suggests that the synthetic data distribution does not fully match "
-            "the real sensor scenarios."
+            "The real-trained model performs better on the shared real holdout. "
+            "This indicates that the synthetic data distribution does not fully "
+            "match the collected real sensor scenarios."
         )
 
 
 if __name__ == "__main__":
     compare_models()
-
