@@ -57,7 +57,10 @@ def parse_args():
 def parse_sensor_line(line):
     parts = line.split(",")
 
-    if len(parts) != 6:
+    # Older logger firmware emitted 6 sensor fields.
+    # The current firmware appends predicted_condition and prediction_reason,
+    # so accept both formats while storing only the raw sensor fields.
+    if len(parts) not in (6, 8):
         return None
 
     try:
@@ -84,7 +87,9 @@ def parse_sensor_line(line):
 def main():
     args = parse_args()
 
-    os.makedirs(os.path.dirname(args.output), exist_ok=True)
+    output_dir = os.path.dirname(args.output)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
 
     file_exists = os.path.exists(args.output)
 
