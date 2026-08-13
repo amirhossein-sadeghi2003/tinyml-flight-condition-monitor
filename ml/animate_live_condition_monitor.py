@@ -73,7 +73,7 @@ def main():
     ax_info = fig.add_subplot(grid[1, 2])
     ax_footer = fig.add_subplot(grid[2, 2])
 
-    fig.suptitle("TinyML Embedded Condition Monitor - Live Embedded Inference Demo", fontsize=15)
+    fig.suptitle("TinyML Embedded Condition Monitor - Recorded Sensor Playback", fontsize=15)
 
     axes = [ax_temp, ax_light, ax_distance, ax_humidity]
     for ax in axes:
@@ -125,7 +125,7 @@ def main():
     status_subtitle = ax_status.text(
         0.5,
         0.18,
-        "Embedded condition state",
+        "Recorded scenario label",
         ha="center",
         va="center",
         fontsize=10,
@@ -146,7 +146,7 @@ def main():
     footer_text = ax_footer.text(
         0.03,
         0.65,
-        "ESP32 sensors → Decision Tree rules → status output",
+        "Recorded ESP32 sensor data → scenario label → status display",
         transform=ax_footer.transAxes,
         va="center",
         fontsize=9,
