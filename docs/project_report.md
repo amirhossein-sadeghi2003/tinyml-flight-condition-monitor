@@ -12,7 +12,7 @@ The system classifies the current sensor state into one of three conditions:
 - `warning`
 - `critical`
 
-This is not a real safety-critical monitoring, navigation, or control system. It is a portfolio-grade prototype designed to demonstrate embedded AI, TinyML-style model development, real sensor data collection, and interpretable deployment on microcontroller hardware.
+This is not a real safety-critical monitoring, navigation, or control system. It is an educational prototype combining embedded AI, TinyML-style model development, real sensor data collection, and interpretable microcontroller firmware.
 
 ---
 
@@ -45,7 +45,7 @@ Main components:
 - ESP32 DevKit / ESP-WROOM-32
 - BME280 temperature, pressure, and humidity sensor
 - BH1750 light sensor
-- VL53LDK / VL53L0X-compatible Time-of-Flight distance sensor
+- VL53L0X-compatible Time-of-Flight distance sensor
 - SSD1306 OLED display
 - NeoPixel LEDs
 - buzzer
@@ -79,7 +79,7 @@ The full data pipeline logs the following features:
 | `pressure_hpa` | BME280 | Atmospheric pressure in hPa |
 | `humidity_percent` | BME280 | Relative humidity percentage |
 | `light_lux` | BH1750 | Ambient light intensity |
-| `distance_cm` | VL53LDK / VL53L0X | Short-range distance |
+| `distance_cm` | VL53L0X-compatible sensor | Short-range distance |
 | `object_detected` | Derived from distance reading | Binary valid-object flag |
 
 The final embedded-friendly model uses:
@@ -167,21 +167,22 @@ This moved the project from a simulated ML workflow to a real hardware-data work
 
 One of the most important findings of the project was the difference between synthetic sensor data and real sensor behavior.
 
-The synthetic-trained model and real-trained model were both evaluated on real sensor data.
+The synthetic-trained model and initial real-trained model were evaluated on the same 25% stratified holdout from the initial real sensor dataset.
 
 Comparison result:
 
 ```text
-Synthetic-trained model accuracy on real data: 0.2871
-Real-trained model accuracy on real data: 1.0000
+Evaluation samples: 53
+Synthetic-trained model accuracy: 0.2830
+Real-trained model accuracy:      1.0000
 ```
 
-This showed that the synthetic data was useful for building the pipeline, but it did not fully represent the real ESP32 sensor distribution.
+This showed that the synthetic data was useful for building the pipeline, but it did not fully represent the collected ESP32 sensor distribution.
 
 This is an important engineering lesson from the project:
 
 ```text
-A synthetic dataset can help build the workflow, but real sensor data is necessary for realistic embedded ML behavior.
+A synthetic dataset can help build the workflow, but its distribution should be checked against real sensor data before drawing conclusions about hardware behavior.
 ```
 
 The comparison is documented through:
@@ -191,6 +192,8 @@ ml/compare_synthetic_real_models.py
 results/synthetic_model_on_real_confusion_matrix.png
 results/real_model_on_real_confusion_matrix.png
 ```
+
+The real-trained `1.0000` score is a within-dataset holdout result and should not be interpreted as independent recording-session or environment validation.
 
 ---
 
@@ -235,7 +238,7 @@ Important improvements included:
 - adding normal medium-light data
 - adding warm/humid high-light data
 
-These additions helped prevent the model from over-associating medium light or high light with the wrong class.
+These additions helped prevent the model from over-associating medium light or high light with the wrong class. The scenario-specific filtering also creates relatively clean class boundaries and should be considered when interpreting the model score.
 
 ---
 
@@ -261,15 +264,26 @@ Exported rules:
 results/real_embedded_tree_rules_round2.txt
 ```
 
-Final model performance:
+Round2 row-level holdout performance:
 
 ```text
+Holdout samples: 453
 Accuracy: 0.9934
 
-critical precision/recall/f1: 1.00 / 1.00 / 1.00
-normal precision/recall/f1: about 1.00 / 0.98 / 0.99
-warning precision/recall/f1: about 0.99 / 1.00 / 0.99
+critical precision/recall/f1: 1.0000 / 1.0000 / 1.0000
+normal precision/recall/f1:   1.0000 / 0.9803 / 0.9900
+warning precision/recall/f1:  0.9852 / 1.0000 / 0.9926
 ```
+
+The evaluation is reproducible with:
+
+```text
+ml/evaluate_real_embedded_model_round2.py
+results/round2_embedded_metrics.txt
+results/round2_embedded_confusion_matrix.png
+```
+
+This score comes from a stratified row-level holdout drawn from the same curated Round2 dataset used during training. It is not independent recording-session or environment validation.
 
 The Decision Tree was selected because it is:
 
@@ -282,15 +296,15 @@ The Decision Tree was selected because it is:
 
 ---
 
-## 10. Learned Rules vs Safety-Prioritized Embedded Logic
+## 10. Learned Rules vs Manually Adapted Embedded Logic
 
 The trained Round2 Decision Tree exported useful thresholds for light, humidity, and distance.
 
 However, the raw learned tree checked `light_lux` before `distance_cm`. This was mathematically valid for the collected dataset, but it was not ideal for the physical embedded demo.
 
-In the real hardware system, close-object proximity should have immediate priority. For example, if an object is very close to the sensor, the firmware should classify the condition as `critical` even if the light level is high.
+In the hardware demo, close-object proximity was intentionally given immediate priority. For example, if an object is very close to the sensor, the firmware should classify the condition as `critical` even if the light level is high.
 
-Because of this, the ESP32 firmware uses safety-prioritized threshold logic derived from the learned decision tree rules.
+Because of this, the ESP32 firmware uses manually adapted threshold logic informed by the learned Decision Tree and the controlled scenario definitions.
 
 The final firmware checks:
 
@@ -301,15 +315,15 @@ The final firmware checks:
 5. high humidity → `warning`
 6. otherwise → `normal`
 
-This means the firmware is not a direct line-by-line copy of the exported tree. Instead, it uses thresholds learned from the model while reordering the rules to make the embedded behavior more intuitive and safer for a physical monitoring demonstration.
+This means the firmware is not a direct line-by-line copy of the exported tree. It combines model-informed thresholds with manually chosen scenario boundaries and an explicit proximity-first evaluation order for the hardware demo.
 
 This is documented as:
 
 ```text
-safety-prioritized embedded threshold logic derived from learned rules
+decision-tree-informed, manually adapted embedded threshold logic
 ```
 
-This design decision is important because it shows the difference between offline model training and real embedded deployment. In embedded systems, deployment logic may need to consider physical behavior, fail-safe ordering, and interpretability in addition to pure model structure.
+This design decision makes the difference between the offline model and the deployed firmware explicit. For this prototype, the rule order is a manual engineering choice rather than a direct export of the trained tree.
 
 ---
 
@@ -326,7 +340,7 @@ The firmware performs:
 - sensor initialization
 - BME280 reading
 - BH1750 reading
-- VL53LDK / VL53L0X distance reading
+- VL53L0X-compatible distance reading
 - embedded condition prediction
 - prediction reason generation
 - Serial CSV output
@@ -364,7 +378,7 @@ For this project stage, a Decision Tree is stronger because it is:
 - easier to validate
 - easier to deploy on ESP32
 - better aligned with rule export
-- easier to explain in a portfolio or interview
+- easy to inspect and test
 - more appropriate for the available real dataset size
 
 A small neural network, such as an MLP, could be added later as an optional comparison baseline. However, it should not replace the Decision Tree as the main embedded deployment model unless more diverse real-world data is collected.
@@ -381,6 +395,8 @@ This project has several limitations:
 - real data was collected in controlled indoor conditions
 - labels are scenario-based
 - the dataset is still relatively small
+- Round2 filtering intentionally creates cleaner class boundaries
+- the Round2 `0.9934` result is a row-level holdout from the same curated dataset used during training
 - the system has not been tested across many rooms or sensor placements
 - firmware thresholds are tuned to the current prototype and environment
 - real-world reliability would require more diverse testing
@@ -398,8 +414,8 @@ Possible future improvements:
 - add additional demo videos or GIFs under more varied conditions
 - improve or rotate/crop OLED photos
 - add an optional MLP baseline for comparison only
-- create a concise portfolio case-study page
 - document lessons learned from synthetic-to-real transfer
+- keep a future recording session fully separate as an independent validation set
 
 The next recommended improvement is a small robustness test rather than retraining the entire pipeline immediately.
 
@@ -412,12 +428,12 @@ TinyML Embedded Condition Monitor demonstrates a complete embedded AI workflow f
 The project shows several important engineering ideas:
 
 - synthetic data is useful for pipeline development
-- real sensor data is necessary for realistic model behavior
+- the collected real sensor distribution differed substantially from the synthetic distribution
 - interpretable models are valuable for embedded deployment
 - learned rules may need deployment-aware adaptation
 - local hardware feedback makes the system easier to demonstrate and debug
 
-The final result is a portfolio-ready embedded AI prototype that connects machine learning, sensor data, ESP32 firmware, and physical feedback devices into one end-to-end system.
+The final result is an embedded AI prototype that connects machine learning, sensor data, ESP32 firmware, and physical feedback devices into one end-to-end system.
 
 ## Hardware Demo Video
 
@@ -427,11 +443,4 @@ A short hardware demonstration video is included in:
 
 The video shows the completed ESP32-based TinyML monitoring prototype in operation.
 
-Demo behavior:
-
-- The first few seconds show the full hardware setup.
-- Because the cooler was running in the room, the humidity-related condition is reflected as a yellow status on the NeoPixels.
-- When the light level is reduced, the system changes to a red alert state and the buzzer activates.
-- When a hand is moved in front of the distance/proximity sensor, the system again enters a red alert state and the buzzer activates.
-
-This video provides additional evidence that the project was tested as an integrated embedded hardware prototype, not only as a software model.
+The demo includes the full hardware setup and transitions into warning or critical output states as the controlled conditions are changed. It provides additional evidence that the project was tested as an integrated embedded hardware prototype, not only as a software model.

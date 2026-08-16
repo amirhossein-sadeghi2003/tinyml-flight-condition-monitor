@@ -21,7 +21,7 @@ The current hardware prototype has been built and tested with real sensors.
 | ESP32 DevKit / ESP-WROOM-32 | Main microcontroller and embedded inference target |
 | BME280 | Measures temperature, pressure, and humidity |
 | BH1750 | Measures ambient light intensity in lux |
-| VL53LDK / VL53L0X-compatible ToF sensor | Measures short-range distance and object proximity |
+| VL53L0X-compatible Time-of-Flight sensor | Measures short-range distance and object proximity |
 | SSD1306 OLED display | Shows live status, cause, and sensor readings |
 | NeoPixel LEDs | Shows visual condition status |
 | Buzzer | Provides audible alert for critical condition |
@@ -38,8 +38,8 @@ The current hardware prototype has been built and tested with real sensors.
 | BME280 | SCL | GPIO 22 | Shared I2C bus |
 | BH1750 | SDA | GPIO 21 | Shared I2C bus |
 | BH1750 | SCL | GPIO 22 | Shared I2C bus |
-| VL53LDK / VL53L0X | SDA | GPIO 21 | Shared I2C bus |
-| VL53LDK / VL53L0X | SCL | GPIO 22 | Shared I2C bus |
+| VL53L0X-compatible sensor | SDA | GPIO 21 | Shared I2C bus |
+| VL53L0X-compatible sensor | SCL | GPIO 22 | Shared I2C bus |
 | SSD1306 OLED | SDA | GPIO 21 | Shared I2C bus |
 | SSD1306 OLED | SCL | GPIO 22 | Shared I2C bus |
 | NeoPixel LEDs | DIN | GPIO 27 | 3 LEDs used |
@@ -52,7 +52,7 @@ The current hardware prototype has been built and tested with real sensors.
 
 ## I2C Bus
 
-The BME280, BH1750, VL53LDK / VL53L0X, and OLED display share the same I2C bus.
+The BME280, BH1750, VL53L0X-compatible sensor, and OLED display share the same I2C bus.
 
 ```text
 SDA: GPIO 21
@@ -65,7 +65,7 @@ I2C addresses used in the current firmware:
 |---|---:|
 | BME280 | `0x76` |
 | BH1750 | `0x23` |
-| VL53LDK / VL53L0X | `0x29` |
+| VL53L0X-compatible sensor | `0x29` |
 | SSD1306 OLED | `0x3C` |
 
 ---
@@ -115,7 +115,7 @@ Approximate interpretation during testing:
 
 ---
 
-### VL53LDK / VL53L0X Distance Sensor
+### VL53L0X-Compatible Distance Sensor
 
 The distance sensor is used as a short-range proximity sensor.
 
@@ -217,7 +217,7 @@ The buzzer is used only for the `critical` condition.
 
 ## Embedded Inference Logic
 
-The firmware uses safety-prioritized embedded threshold logic derived from the trained Round2 decision tree rules.
+The firmware uses manually adapted threshold logic informed by the trained Round2 Decision Tree and the controlled scenario definitions. It is not a line-by-line export of the trained tree.
 
 Final firmware logic:
 
@@ -256,7 +256,7 @@ predicted_condition = "normal";
 prediction_reason = "Safe";
 ```
 
-The firmware intentionally prioritizes proximity before light and humidity so that close-object detection has immediate priority in the embedded demo.
+The firmware intentionally prioritizes proximity before light and humidity so that close-object detection has immediate priority in the embedded demo. The medium-distance and low-light warning ranges also reflect the controlled scenario definitions used during data collection rather than direct branches of the exported Decision Tree.
 
 ---
 
@@ -290,7 +290,7 @@ The firmware includes:
 
 - BME280 reading
 - BH1750 reading
-- VL53LDK / VL53L0X distance reading
+- VL53L0X-compatible distance reading
 - embedded condition prediction
 - prediction reason
 - Serial CSV output

@@ -33,7 +33,7 @@ synthetic sensor data generation
 → OLED / NeoPixel / buzzer hardware feedback
 ```
 
-This makes the project suitable as a portfolio-grade demonstration of:
+The repository contains working evidence for:
 
 - cyber-physical systems
 - embedded sensor data collection
@@ -57,9 +57,9 @@ The ESP32 reads data from multiple sensors:
 
 - BME280 for temperature, pressure, and humidity
 - BH1750 for ambient light intensity
-- VL53LDK / VL53L0X-compatible ToF sensor for short-range proximity
+- VL53L0X-compatible Time-of-Flight sensor for short-range proximity
 
-The ESP32 then runs embedded threshold logic derived from a trained Decision Tree model.
+The ESP32 then runs manually adapted threshold logic informed by a trained Decision Tree model and the controlled scenario definitions.
 
 The predicted condition is shown through:
 
@@ -99,7 +99,7 @@ The project logs and processes the following sensor-derived features:
 | `pressure_hpa` | BME280 | Atmospheric pressure in hPa |
 | `humidity_percent` | BME280 | Relative humidity percentage |
 | `light_lux` | BH1750 | Ambient light intensity |
-| `distance_cm` | VL53LDK / VL53L0X | Short-range distance measurement |
+| `distance_cm` | VL53L0X-compatible sensor | Short-range distance measurement |
 | `object_detected` | Derived from distance sensor | Binary flag for valid object detection |
 
 The final embedded-friendly Round2 model uses:
@@ -229,7 +229,7 @@ The initial real model performed very well on the controlled real dataset, but t
 
 ## Synthetic vs Real Comparison
 
-The project explicitly compares a synthetic-trained model against a real-trained model on real sensor data.
+The project compares a synthetic-trained model against an initial real-trained model on the same 25% stratified holdout from the initial real sensor dataset.
 
 Comparison script:
 
@@ -247,13 +247,14 @@ results/real_model_on_real_confusion_matrix.png
 Result:
 
 ```text
-Synthetic-trained model accuracy on real data: 0.2871
-Real-trained model accuracy on real data: 1.0000
+Evaluation samples: 53
+Synthetic-trained model accuracy: 0.2830
+Real-trained model accuracy:      1.0000
 ```
 
 This comparison is an important part of the project narrative.
 
-It shows that synthetic data was useful for prototyping the workflow, but real hardware data was necessary for realistic model behavior.
+It shows a substantial distribution mismatch between the synthetic data and the collected sensor scenarios. The real-trained score is a within-dataset holdout result, not independent session or environment validation.
 
 ---
 
@@ -324,9 +325,10 @@ Rules file:
 results/real_embedded_tree_rules_round2.txt
 ```
 
-Final embedded model performance:
+Round2 row-level holdout performance:
 
 ```text
+Holdout samples: 453
 Accuracy: 0.9934
 
 critical precision/recall/f1: 1.00 / 1.00 / 1.00
@@ -334,11 +336,20 @@ normal precision/recall/f1: about 1.00 / 0.98 / 0.99
 warning precision/recall/f1: about 0.99 / 1.00 / 0.99
 ```
 
+Evaluation artifacts:
+
+```text
+results/round2_embedded_metrics.txt
+results/round2_embedded_confusion_matrix.png
+```
+
+This is a stratified row-level holdout from the same curated Round2 dataset used during training. It is not independent recording-session or environment validation.
+
 ---
 
 ## Embedded Inference on ESP32
 
-The final firmware uses safety-prioritized threshold logic derived from the trained Round2 Decision Tree rules.
+The final firmware uses manually adapted threshold logic informed by the trained Round2 Decision Tree and the controlled scenario definitions.
 
 The firmware intentionally prioritizes proximity first:
 
@@ -352,10 +363,10 @@ The firmware intentionally prioritizes proximity first:
 This is documented as:
 
 ```text
-safety-prioritized embedded threshold logic derived from learned rules
+decision-tree-informed, manually adapted embedded threshold logic
 ```
 
-This design keeps the embedded behavior interpretable and easy to inspect.
+This design keeps the embedded behavior interpretable and easy to inspect while making the difference between the trained model and firmware explicit.
 
 Main firmware file:
 
@@ -408,6 +419,7 @@ Completed:
 - synthetic-vs-real model comparison
 - filtered Round2 real dataset
 - embedded-friendly Round2 Decision Tree model
+- Round2 holdout evaluation artifacts
 - exported embedded rules
 - ESP32 embedded inference
 - Serial prediction output
@@ -415,8 +427,13 @@ Completed:
 - NeoPixel status indication
 - buzzer critical alert
 - hardware demo photos
+- hardware demo video
+- recorded-data playback GIF
 - README documentation update
-- hardware setup documentation update
+- system overview documentation
+- embedded inference documentation
+- hardware setup documentation
+- project report
 
 ---
 
@@ -445,6 +462,8 @@ Current limitations:
 - real data was collected in controlled indoor scenarios
 - dataset size is still relatively small
 - labels are scenario-based rather than from a real operational system
+- Round2 data is scenario-filtered and creates relatively clean class boundaries
+- the `0.9934` score is a row-level holdout from the same curated dataset used for training
 - thresholds are tuned to the current hardware setup and environment
 - model performance should not be interpreted as general safety reliability
 - the system has not been tested across many rooms, lighting conditions, or sensor placements
@@ -456,11 +475,10 @@ Current limitations:
 Possible future improvements:
 
 - collect more real data in different rooms and lighting conditions
-- add a short demo video or GIF
 - improve or crop/rotate OLED photos
 - add a small neural network baseline only for comparison
-- add a portfolio-style project report
 - test robustness under more varied sensor placements
+- evaluate on an independent recording session kept separate from model development
 
 ---
 

@@ -2,7 +2,7 @@
 
 Embedded machine learning prototype for monitoring environmental and proximity conditions using ESP32 sensors and lightweight classification.
 
-This project demonstrates a complete TinyML-style workflow:
+The repository covers a complete TinyML-style workflow:
 
 `synthetic sensor data generation → model training → evaluation → decision rule export → ESP32 sensor logging → real sensor dataset collection → real model training → synthetic-vs-real comparison → filtered Round2 real dataset → embedded-friendly decision rules → ESP32 embedded inference → OLED / NeoPixel / buzzer hardware feedback`
 
@@ -14,7 +14,7 @@ The goal is not to build a real safety-critical system. Instead, this project is
 - Collected real ESP32 sensor logs in multiple controlled scenarios
 - Compared synthetic-data and real-data model behavior
 - Trained an embedded-friendly decision tree on real sensor data
-- Converted learned decision rules into ESP32 `if-else` inference logic
+- Adapted learned thresholds and controlled scenario boundaries into ESP32 `if-else` condition logic
 - Added live OLED, NeoPixel, and buzzer feedback for physical status output
 - Documented hardware setup, embedded inference logic, photos, and demo video
 
@@ -59,7 +59,7 @@ Input features:
 
 The main machine learning model is a lightweight `DecisionTreeClassifier`, selected because it is interpretable, suitable for small embedded datasets, and easier to convert into embedded rule-based logic for ESP32 deployment.
 
-For the final firmware demo, the learned decision-tree thresholds are converted into safety-prioritized embedded `if-else` logic. Proximity-based critical conditions are prioritized in firmware to make the embedded behavior more robust during real hardware testing.
+The final firmware is not a line-by-line deployment of the trained Decision Tree. It uses manually adapted threshold logic informed by the Round2 model and the controlled scenario definitions, with proximity checks intentionally evaluated before light and humidity.
 
 ---
 
@@ -76,7 +76,7 @@ The project focuses on:
 - interpretable machine learning
 - embedded environmental and proximity monitoring
 - edge intelligence on microcontrollers
-- real-world validation of sensor-based ML models
+- controlled evaluation of sensor-based ML models
 - converting trained decision rules into embedded firmware logic
 - hardware feedback using OLED, NeoPixel LEDs, and buzzer alerts
 
@@ -91,7 +91,7 @@ Hardware components used:
 - ESP32
 - BME280 temperature, pressure, and humidity sensor
 - BH1750 light sensor
-- VL53LDK / VL53L0X-compatible Time-of-Flight distance sensor
+- VL53L0X-compatible Time-of-Flight distance sensor
 - OLED display
 - NeoPixel LEDs
 - buzzer
@@ -102,7 +102,7 @@ The firmware reads sensor data over I2C, predicts the current condition on-devic
 
 Detailed hardware wiring and setup notes are available in [`docs/hardware_setup.md`](docs/hardware_setup.md).
 
-The embedded inference logic and the safety-prioritized adaptation from Decision Tree rules to ESP32 firmware are explained in [`docs/embedded_inference_explanation.md`](docs/embedded_inference_explanation.md).
+The relationship between the trained Decision Tree and the manually adapted ESP32 threshold logic is explained in [`docs/embedded_inference_explanation.md`](docs/embedded_inference_explanation.md).
 
 ---
 
@@ -257,7 +257,7 @@ The firmware reads:
 
 - temperature, pressure, and humidity from BME280
 - light intensity from BH1750
-- short-range distance from the VL53LDK / VL53L0X-compatible distance sensor
+- short-range distance from the VL53L0X-compatible distance sensor
 
 The ESP32 sends CSV-formatted readings over Serial, including the predicted condition and prediction reason.
 
@@ -426,9 +426,9 @@ Generated real-data result files:
 
 ![Real Scenario Distribution](results/real_scenario_distribution.png)
 
-### Real Feature Ranges
+### Mean Feature Values by Label
 
-![Real Feature Ranges](results/real_feature_ranges.png)
+![Mean Feature Values by Label](results/real_feature_ranges.png)
 
 ---
 
@@ -467,7 +467,7 @@ The initial real-data model achieves perfect classification on the collected con
 
 ## Synthetic vs Real Model Comparison
 
-To understand how well the synthetic pipeline transfers to real hardware data, both trained models were evaluated on the labeled real sensor dataset.
+Both the synthetic-trained and initial real-trained Decision Trees are evaluated on the same 25% stratified holdout reconstructed from `data/real_labeled_sensor_data.csv` using `random_state=42`.
 
 Comparison script:
 
@@ -478,24 +478,23 @@ Generated comparison result files:
 - `results/synthetic_model_on_real_confusion_matrix.png`
 - `results/real_model_on_real_confusion_matrix.png`
 
-### Synthetic-Trained Model on Real Data
+### Synthetic-Trained Model on Shared Real Holdout
 
-![Synthetic-Trained Model on Real Data](results/synthetic_model_on_real_confusion_matrix.png)
+![Synthetic-Trained Model on Shared Real Holdout](results/synthetic_model_on_real_confusion_matrix.png)
 
-### Real-Trained Model on Real Data
+### Real-Trained Model on Shared Real Holdout
 
-![Real-Trained Model on Real Data](results/real_model_on_real_confusion_matrix.png)
+![Real-Trained Model on Shared Real Holdout](results/real_model_on_real_confusion_matrix.png)
 
 ### Comparison Summary
 
-- Synthetic-trained model accuracy on real data: `0.2871`
-- Real-trained model accuracy on real data: `1.0000`
+- Evaluation samples: `53`
+- Synthetic-trained model accuracy: `0.2830`
+- Real-trained model accuracy: `1.0000`
 
-This comparison shows that the synthetic dataset was useful for building and testing the initial ML pipeline, but it does not fully match the distribution of the real sensor data collected from the ESP32 hardware prototype.
+The synthetic-trained model transfers poorly to this real-data holdout, showing a substantial mismatch between the synthetic distribution and the collected ESP32 sensor scenarios.
 
-The real-trained model performs much better on the collected real dataset, which highlights the importance of real-world data collection for embedded ML validation and deployment.
-
-This is an important result for the project: the synthetic data helped build the pipeline, but the real hardware data was necessary for realistic model behavior.
+The real-trained score is a within-dataset holdout result. It should not be interpreted as independent recording-session or environment validation.
 
 ---
 
@@ -543,7 +542,7 @@ Total Round2 samples:
 
 `1811`
 
-This dataset is more suitable for embedded model development than the initial small real dataset because it contains more samples, cleaner scenario separation, and additional corrective data for medium-light and high-humidity cases.
+The Round2 dataset contains more samples and additional controlled scenarios than the initial real dataset. Its scenario-specific filtering intentionally creates cleaner class boundaries for embedded model development.
 
 ---
 
@@ -570,12 +569,22 @@ These features were selected because they map directly to simple embedded infere
 
 Round2 embedded model performance:
 
+- Holdout samples: `453`
 - Accuracy: `0.9934`
 - Critical recall: `1.00`
 - Normal recall: `0.98`
 - Warning recall: `1.00`
 
-This result is more realistic than the earlier perfect-score models because the Round2 dataset includes more overlapping conditions, especially medium-light normal data and high-humidity warning data.
+Evaluation script:
+
+`ml/evaluate_real_embedded_model_round2.py`
+
+Evaluation artifacts:
+
+- `results/round2_embedded_metrics.txt`
+- `results/round2_embedded_confusion_matrix.png`
+
+The reported score comes from a stratified row-level holdout drawn from the same curated Round2 dataset used during training. It is not independent recording-session or environment validation.
 
 ---
 
@@ -616,7 +625,7 @@ Exported rules:
 |   |   |--- class: warning
 ```
 
-The exported rules were used as the basis for ESP32 firmware inference. During hardware testing, the firmware logic was adapted into a safety-prioritized version where proximity conditions are checked before light and humidity. This prevents close objects from being classified as normal under high-light conditions.
+The exported rules were used as one input to the ESP32 firmware logic. The firmware is manually adapted rather than copied from the tree line by line: proximity is checked before light and humidity, and some warning boundaries follow the controlled scenario definitions used during data collection.
 
 The final embedded logic follows this behavior:
 
@@ -627,7 +636,7 @@ The final embedded logic follows this behavior:
 - high humidity triggers `warning`
 - otherwise the condition remains `normal`
 
-This makes the deployed ESP32 behavior more robust and more intuitive for a physical monitoring demo.
+This gives the hardware demo an explicit, easy-to-inspect priority order while keeping the relationship to the learned model visible.
 
 ---
 
@@ -715,8 +724,9 @@ Additional project documentation is available here:
 | Document | Description |
 |---|---|
 | [`docs/system_overview.md`](docs/system_overview.md) | End-to-end system architecture, ML workflow, embedded inference, and current project status |
-| [`docs/embedded_inference_explanation.md`](docs/embedded_inference_explanation.md) | Explains how the trained Decision Tree thresholds are adapted into safety-prioritized ESP32 firmware logic |
+| [`docs/embedded_inference_explanation.md`](docs/embedded_inference_explanation.md) | Explains the relationship between the trained Decision Tree and the manually adapted ESP32 logic |
 | [`docs/hardware_setup.md`](docs/hardware_setup.md) | ESP32 wiring, sensor roles, I2C addresses, output devices, and hardware notes |
+| [`docs/project_report.md`](docs/project_report.md) | Project development narrative, evaluation results, deployment decisions, and limitations |
 
 ---
 
@@ -764,7 +774,7 @@ Evaluate the initial real-data decision tree model:
 
 `python ml/evaluate_real_model.py`
 
-Compare synthetic-trained and real-trained models on real data:
+Compare synthetic-trained and real-trained models on the shared real holdout:
 
 `python ml/compare_synthetic_real_models.py`
 
@@ -775,6 +785,10 @@ Build the filtered Round2 real dataset:
 Train the embedded-friendly Round2 model:
 
 `python ml/train_real_embedded_model_round2.py`
+
+Evaluate the saved Round2 model on the reconstructed row-level holdout:
+
+`python ml/evaluate_real_embedded_model_round2.py`
 
 Export the Round2 embedded decision rules:
 
@@ -837,6 +851,7 @@ Completed:
 - synthetic-trained vs real-trained model comparison
 - filtered Round2 real sensor dataset
 - embedded-friendly Round2 decision tree model
+- Round2 holdout metrics and confusion matrix
 - exported Round2 embedded decision rules
 - ESP32 embedded inference logic
 - prediction reason display
@@ -845,16 +860,18 @@ Completed:
 - OLED live condition and cause display
 - buzzer critical alert
 - hardware demo photos
+- hardware demo video
+- recorded Round2 sensor playback GIF
 - system overview documentation
+- embedded inference documentation
 - hardware setup documentation
+- project report
 
 Next steps:
 
-- optionally add a short demo video or GIF
 - optionally improve or crop/rotate OLED photos
 - optionally add a small neural network baseline for comparison
 - optionally test the embedded logic in different rooms and lighting conditions
-- optionally create a portfolio case study or project report
 
 ---
 
@@ -874,13 +891,13 @@ The synthetic dataset is generated using manually designed threshold rules.
 
 The initial real dataset is small and collected under manually controlled scenarios. It is useful for prototype validation, but should not be treated as robust real-world coverage.
 
-The Round2 real dataset is larger and cleaner, but it is still collected in one room under manually controlled conditions. More data from different environments would be needed for general real-world reliability.
+The Round2 real dataset is larger and scenario-filtered, but it is still collected in one room under manually controlled conditions. The `0.9934` result is a row-level holdout from that same curated dataset, not an independent session or environment test. More data from different environments would be needed for broader reliability claims.
 
 The real-data models perform very well on the collected controlled scenario datasets, but this should not be interpreted as proof of general real-world reliability.
 
-The synthetic-trained model performs poorly on the collected real dataset, showing that the synthetic distribution does not fully match real sensor behavior. This is a useful validation result and motivates real-world data collection.
+The synthetic-trained model performs poorly on the shared holdout from the initial real dataset, showing that the synthetic distribution does not fully match the collected sensor scenarios. This motivates using real hardware data during model development.
 
-The final ESP32 firmware uses safety-prioritized embedded threshold logic derived from the learned decision tree rules. This makes the hardware behavior more robust, but it should still be interpreted as an educational prototype rather than a certified safety system.
+The final ESP32 firmware uses manually adapted threshold logic informed by the learned decision tree and controlled scenario boundaries. It is not a direct deployment of the trained tree and should be interpreted as educational prototype logic rather than a certified safety system.
 
 This project should not be interpreted as a real safety-critical monitoring, navigation, or control system. It is an educational embedded AI prototype for sensor-based condition monitoring.
 
@@ -888,19 +905,20 @@ This project should not be interpreted as a real safety-critical monitoring, nav
 
 ## License
 
-This project is released under the MIT License.
+This project is released under the [MIT License](LICENSE).
+
 ---
 
-## Live TinyML Condition Monitor Animation
+## Recorded Sensor Playback Animation
 
-The animation below shows a live-style embedded monitoring dashboard built from the real Round2 sensor dataset.
+The animation below replays recorded samples from the real Round2 sensor dataset as a monitoring dashboard. It does not run model inference.
 
 It visualizes:
 
 - recent temperature, light, distance, and humidity readings
 - the current condition label
 - scenario context
-- embedded-style status output
+- recorded scenario label and status display
 
-![Live TinyML Condition Monitor](results/live_condition_monitor.gif)
+![Recorded Sensor Playback](results/live_condition_monitor.gif)
 
