@@ -1,4 +1,3 @@
-
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -64,7 +63,7 @@ def plot_scenario_distribution(df):
     print(f"Saved scenario distribution plot to: {output_path}")
 
 
-def plot_feature_ranges(df):
+def plot_feature_means(df):
     os.makedirs(RESULTS_DIR, exist_ok=True)
 
     summary = df.groupby("label")[FEATURE_COLUMNS].mean()
@@ -80,7 +79,7 @@ def plot_feature_ranges(df):
     plt.savefig(output_path, dpi=300)
     plt.close()
 
-    print(f"Saved feature range plot to: {output_path}")
+    print(f"Saved feature mean plot to: {output_path}")
 
 
 def print_summary(df):
@@ -107,9 +106,8 @@ def analyze_real_dataset():
     print_summary(df)
     plot_label_distribution(df)
     plot_scenario_distribution(df)
-    plot_feature_ranges(df)
+    plot_feature_means(df)
 
 
 if __name__ == "__main__":
     analyze_real_dataset()
-

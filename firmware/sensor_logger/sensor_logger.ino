@@ -46,10 +46,8 @@ void predictCondition(
   float distance_cm,
   int object_detected
 ) {
-  // Embedded safety-prioritized inference logic.
-  // Based on Round2 decision tree rules, adapted for robust firmware behavior.
-  // The firmware checks proximity first so that close objects are never hidden
-  // by high light or otherwise normal environmental readings.
+  // Thresholds are adapted from the Round2 model and scenario definitions.
+  // Proximity is evaluated before light and humidity in the firmware.
 
   if (object_detected == 1) {
     if (distance_cm <= 28.75) {
@@ -277,7 +275,7 @@ void setup() {
   }
 
   if (!lox.begin(0x29, false, &Wire)) {
-    Serial.println("ERROR: VL53LDK/VL53L0X not found at 0x29");
+    Serial.println("ERROR: VL53L0X not found at 0x29");
     setNeoPixelStatus("critical");
     showErrorOnOLED("VL53L0X not found");
     digitalWrite(BUZZER_PIN, HIGH);
